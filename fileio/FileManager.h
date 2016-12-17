@@ -5,8 +5,8 @@
 #include <iostream>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
 #include <fcntl.h>
+#include "unistd.h"
 //#include "../MyLinkList.h"
 using namespace std;
 class FileManager {
@@ -34,21 +34,21 @@ private:
 	}
 public:
 	/*
-	 * FilManageræž„é€ å‡½æ•°
-	 */
+	* FilManager¹¹Ôìº¯Êý
+	*/
 	FileManager() {
 		fm = new MyBitMap(MAX_FILE_NUM, 1);
 		tm = new MyBitMap(MAX_TYPE_NUM, 1);
 	}
 	/*
-	 * @å‡½æ•°åwritePage
-	 * @å‚æ•°fileID:æ–‡ä»¶idï¼Œç”¨äºŽåŒºåˆ«å·²ç»æ‰“å¼€çš„æ–‡ä»¶
-	 * @å‚æ•°pageID:æ–‡ä»¶çš„é¡µå·
-	 * @å‚æ•°buf:å­˜å‚¨ä¿¡æ¯çš„ç¼“å­˜(4å­—èŠ‚æ— ç¬¦å·æ•´æ•°æ•°ç»„)
-	 * @å‚æ•°off:åç§»é‡
-	 * åŠŸèƒ½:å°†buf+offå¼€å§‹çš„2048ä¸ªå››å­—èŠ‚æ•´æ•°(8kbä¿¡æ¯)å†™å…¥fileIDå’ŒpageIDæŒ‡å®šçš„æ–‡ä»¶é¡µä¸­
-	 * è¿”å›ž:æˆåŠŸæ“ä½œè¿”å›ž0
-	 */
+	* @º¯ÊýÃûwritePage
+	* @²ÎÊýfileID:ÎÄ¼þid£¬ÓÃÓÚÇø±ðÒÑ¾­´ò¿ªµÄÎÄ¼þ
+	* @²ÎÊýpageID:ÎÄ¼þµÄÒ³ºÅ
+	* @²ÎÊýbuf:´æ´¢ÐÅÏ¢µÄ»º´æ(4×Ö½ÚÎÞ·ûºÅÕûÊýÊý×é)
+	* @²ÎÊýoff:Æ«ÒÆÁ¿
+	* ¹¦ÄÜ:½«buf+off¿ªÊ¼µÄ2048¸öËÄ×Ö½ÚÕûÊý(8kbÐÅÏ¢)Ð´ÈëfileIDºÍpageIDÖ¸¶¨µÄÎÄ¼þÒ³ÖÐ
+	* ·µ»Ø:³É¹¦²Ù×÷·µ»Ø0
+	*/
 	int writePage(int fileID, int pageID, BufType buf, int off) {
 		int f = fd[fileID];
 		off_t offset = pageID;
@@ -58,18 +58,18 @@ public:
 			return -1;
 		}
 		BufType b = buf + off;
-		error = write(f, (void*) b, PAGE_SIZE);
+		error = write(f, (void*)b, PAGE_SIZE);
 		return 0;
 	}
 	/*
-	 * @å‡½æ•°åreadPage
-	 * @å‚æ•°fileID:æ–‡ä»¶idï¼Œç”¨äºŽåŒºåˆ«å·²ç»æ‰“å¼€çš„æ–‡ä»¶
-	 * @å‚æ•°pageID:æ–‡ä»¶é¡µå·
-	 * @å‚æ•°buf:å­˜å‚¨ä¿¡æ¯çš„ç¼“å­˜(4å­—èŠ‚æ— ç¬¦å·æ•´æ•°æ•°ç»„)
-	 * @å‚æ•°off:åç§»é‡
-	 * åŠŸèƒ½:å°†fileIDå’ŒpageIDæŒ‡å®šçš„æ–‡ä»¶é¡µä¸­2048ä¸ªå››å­—èŠ‚æ•´æ•°(8kb)è¯»å…¥åˆ°buf+offå¼€å§‹çš„å†…å­˜ä¸­
-	 * è¿”å›ž:æˆåŠŸæ“ä½œè¿”å›ž0
-	 */
+	* @º¯ÊýÃûreadPage
+	* @²ÎÊýfileID:ÎÄ¼þid£¬ÓÃÓÚÇø±ðÒÑ¾­´ò¿ªµÄÎÄ¼þ
+	* @²ÎÊýpageID:ÎÄ¼þÒ³ºÅ
+	* @²ÎÊýbuf:´æ´¢ÐÅÏ¢µÄ»º´æ(4×Ö½ÚÎÞ·ûºÅÕûÊýÊý×é)
+	* @²ÎÊýoff:Æ«ÒÆÁ¿
+	* ¹¦ÄÜ:½«fileIDºÍpageIDÖ¸¶¨µÄÎÄ¼þÒ³ÖÐ2048¸öËÄ×Ö½ÚÕûÊý(8kb)¶ÁÈëµ½buf+off¿ªÊ¼µÄÄÚ´æÖÐ
+	* ·µ»Ø:³É¹¦²Ù×÷·µ»Ø0
+	*/
 	int readPage(int fileID, int pageID, BufType buf, int off) {
 		//int f = fd[fID[type]];
 		int f = fd[fileID];
@@ -80,15 +80,15 @@ public:
 			return -1;
 		}
 		BufType b = buf + off;
-		error = read(f, (void*) b, PAGE_SIZE);
+		error = read(f, (void*)b, PAGE_SIZE);
 		return 0;
 	}
 	/*
-	 * @å‡½æ•°åcloseFile
-	 * @å‚æ•°fileID:ç”¨äºŽåŒºåˆ«å·²ç»æ‰“å¼€çš„æ–‡ä»¶
-	 * åŠŸèƒ½:å…³é—­æ–‡ä»¶
-	 * è¿”å›ž:æ“ä½œæˆåŠŸï¼Œè¿”å›ž0
-	 */
+	* @º¯ÊýÃûcloseFile
+	* @²ÎÊýfileID:ÓÃÓÚÇø±ðÒÑ¾­´ò¿ªµÄÎÄ¼þ
+	* ¹¦ÄÜ:¹Ø±ÕÎÄ¼þ
+	* ·µ»Ø:²Ù×÷³É¹¦£¬·µ»Ø0
+	*/
 	int closeFile(int fileID) {
 		fm->setBit(fileID, 1);
 		int f = fd[fileID];
@@ -96,22 +96,22 @@ public:
 		return 0;
 	}
 	/*
-	 * @å‡½æ•°åcreateFile
-	 * @å‚æ•°name:æ–‡ä»¶å
-	 * åŠŸèƒ½:æ–°å»ºnameæŒ‡å®šçš„æ–‡ä»¶å
-	 * è¿”å›ž:æ“ä½œæˆåŠŸï¼Œè¿”å›žtrue
-	 */
+	* @º¯ÊýÃûcreateFile
+	* @²ÎÊýname:ÎÄ¼þÃû
+	* ¹¦ÄÜ:ÐÂ½¨nameÖ¸¶¨µÄÎÄ¼þÃû
+	* ·µ»Ø:²Ù×÷³É¹¦£¬·µ»Øtrue
+	*/
 	bool createFile(const char* name) {
 		_createFile(name);
 		return true;
 	}
 	/*
-	 * @å‡½æ•°åopenFile
-	 * @å‚æ•°name:æ–‡ä»¶å
-	 * @å‚æ•°fileID:å‡½æ•°è¿”å›žæ—¶ï¼Œå¦‚æžœæˆåŠŸæ‰“å¼€æ–‡ä»¶ï¼Œé‚£ä¹ˆä¸ºè¯¥æ–‡ä»¶åˆ†é…ä¸€ä¸ªidï¼Œè®°å½•åœ¨fileIDä¸­
-	 * åŠŸèƒ½:æ‰“å¼€æ–‡ä»¶
-	 * è¿”å›ž:å¦‚æžœæˆåŠŸæ‰“å¼€ï¼Œåœ¨fileIDä¸­å­˜å‚¨ä¸ºè¯¥æ–‡ä»¶åˆ†é…çš„idï¼Œè¿”å›žtrueï¼Œå¦åˆ™è¿”å›žfalse
-	 */
+	* @º¯ÊýÃûopenFile
+	* @²ÎÊýname:ÎÄ¼þÃû
+	* @²ÎÊýfileID:º¯Êý·µ»ØÊ±£¬Èç¹û³É¹¦´ò¿ªÎÄ¼þ£¬ÄÇÃ´Îª¸ÃÎÄ¼þ·ÖÅäÒ»¸öid£¬¼ÇÂ¼ÔÚfileIDÖÐ
+	* ¹¦ÄÜ:´ò¿ªÎÄ¼þ
+	* ·µ»Ø:Èç¹û³É¹¦´ò¿ª£¬ÔÚfileIDÖÐ´æ´¢Îª¸ÃÎÄ¼þ·ÖÅäµÄid£¬·µ»Øtrue£¬·ñÔò·µ»Øfalse
+	*/
 	bool openFile(const char* name, int& fileID) {
 		fileID = fm->findLeftOne();
 		fm->setBit(fileID, 0);

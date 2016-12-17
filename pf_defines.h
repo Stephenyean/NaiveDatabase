@@ -1,3 +1,4 @@
+#pragma once
 #include <cstdio>
 #include <cstring>
 #include <algorithm>
@@ -23,8 +24,10 @@ enum CompOp {
 	ISNULL_OP
 };
 
-enum RC {
+enum RC_Return {
 	OK,
+	ERROR,
+	PF_CLOSEDFILE,
 	UNKNOWN_ERROR,
 	CREATE_ERROR,
 	OPEN_ERROR,
@@ -50,7 +53,7 @@ enum RC {
 };
 
 enum AttrType {
-	INT,
+	DINT,
 	FLOAT,
 	STRING,
 	NUL
