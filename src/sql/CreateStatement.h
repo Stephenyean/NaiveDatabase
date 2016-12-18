@@ -11,19 +11,26 @@ namespace hsql {
         enum DataType {
             TEXT,
             INT,
-            DOUBLE
+            DOUBLE,
+            VARCHAR
         };
 
-        ColumnDefinition(char* name, DataType type) :
+        ColumnDefinition(char* name, DataType type, int64_t width, bool isnull) :
             name(name),
-            type(type) {}
+            type(type),
+            width(width),
+            isnull(isnull) {}
+
 
         virtual ~ColumnDefinition() {
             delete name;
         }
 
+
         char* name;
         DataType type;
+        int64_t width; // when width = 0 means not define
+        bool isnull;
     };
 
     /**
@@ -42,6 +49,7 @@ namespace hsql {
             ifNotExists(false),
             filePath(NULL),
             tableName(NULL),
+            primaryKey(NULL),
             columns(NULL) {};
 
         virtual ~CreateStatement() {
@@ -55,6 +63,7 @@ namespace hsql {
         bool ifNotExists;
         const char* filePath;
         const char* tableName;
+        const char* primaryKey;
         std::vector<ColumnDefinition*>* columns;
     };
 

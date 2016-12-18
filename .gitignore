@@ -34,3 +34,6 @@ lib-test/
 
 *.cpp.orig
 *.h.orig
+
+*log*
+hyrise/*

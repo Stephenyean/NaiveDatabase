@@ -4,6 +4,7 @@
 #include "SelectStatement.h"
 #include "ImportStatement.h"
 #include "CreateStatement.h"
+#include "SingleStatement.h"
 #include "InsertStatement.h"
 #include "UpdateStatement.h"
 #include "DeleteStatement.h"

@@ -13,7 +13,7 @@
 #define FLEX_SCANNER
 #define YY_FLEX_MAJOR_VERSION 2
 #define YY_FLEX_MINOR_VERSION 5
-#define YY_FLEX_SUBMINOR_VERSION 35
+#define YY_FLEX_SUBMINOR_VERSION 37
 #if YY_FLEX_SUBMINOR_VERSION > 0
 #define FLEX_BETA
 #endif
@@ -132,15 +132,7 @@ typedef void* yyscan_t;
 
 /* Size of default input buffer. */
 #ifndef YY_BUF_SIZE
-#ifdef __ia64__
-/* On IA-64, the buffer size is 16k, not 8k.
- * Moreover, YY_BUF_SIZE is 2*YY_READ_BUF_SIZE in the general case.
- * Ditto for the __ia64__ case accordingly.
- */
-#define YY_BUF_SIZE 32768
-#else
 #define YY_BUF_SIZE 16384
-#endif /* __ia64__ */
 #endif
 
 #ifndef YY_TYPEDEF_YY_BUFFER_STATE
@@ -170,7 +162,7 @@ struct yy_buffer_state
 	/* Number of characters read into yy_ch_buf, not including EOB
 	 * characters.
 	 */
-	int yy_n_chars;
+	yy_size_t yy_n_chars;
 
 	/* Whether we "own" the buffer - i.e., we know we created it,
 	 * and can realloc() it to grow it, and should free() it to
@@ -214,7 +206,7 @@ void hsql_pop_buffer_state (yyscan_t yyscanner );
 
 YY_BUFFER_STATE hsql__scan_buffer (char *base,yy_size_t size ,yyscan_t yyscanner );
 YY_BUFFER_STATE hsql__scan_string (yyconst char *yy_str ,yyscan_t yyscanner );
-YY_BUFFER_STATE hsql__scan_bytes (yyconst char *bytes,int len ,yyscan_t yyscanner );
+YY_BUFFER_STATE hsql__scan_bytes (yyconst char *bytes,yy_size_t len ,yyscan_t yyscanner );
 
 void *hsql_alloc (yy_size_t ,yyscan_t yyscanner );
 void *hsql_realloc (void *,yy_size_t ,yyscan_t yyscanner );
@@ -222,7 +214,7 @@ void hsql_free (void * ,yyscan_t yyscanner );
 
 /* Begin user sect3 */
 
-#define hsql_wrap(n) 1
+#define hsql_wrap(yyscanner) 1
 #define YY_SKIP_YYWRAP
 
 #define yytext_ptr yytext_r
@@ -233,14 +225,11 @@ void hsql_free (void * ,yyscan_t yyscanner );
 
 #endif
 
-#ifndef YY_NO_UNISTD_H
-/* Special case for "unistd.h", since it is non-ANSI. We include it way
- * down here because we want the user's section 1 to have been scanned first.
- * The user has a chance to override it with an option.
- */
-#include <unistd.h>
-#endif
-
+/*windows compatibility case*/
+#include <io.h>
+#define isatty _isatty
+#define fileno _fileno
+    
 #ifndef YY_EXTRA_TYPE
 #define YY_EXTRA_TYPE void *
 #endif
@@ -270,13 +259,17 @@ FILE *hsql_get_out (yyscan_t yyscanner );
 
 void hsql_set_out  (FILE * out_str ,yyscan_t yyscanner );
 
-int hsql_get_leng (yyscan_t yyscanner );
+yy_size_t hsql_get_leng (yyscan_t yyscanner );
 
 char *hsql_get_text (yyscan_t yyscanner );
 
 int hsql_get_lineno (yyscan_t yyscanner );
 
 void hsql_set_lineno (int line_number ,yyscan_t yyscanner );
+
+int hsql_get_column  (yyscan_t yyscanner );
+
+void hsql_set_column (int column_no ,yyscan_t yyscanner );
 
 YYSTYPE * hsql_get_lval (yyscan_t yyscanner );
 
@@ -312,12 +305,7 @@ static int yy_flex_strlen (yyconst char * ,yyscan_t yyscanner);
 
 /* Amount of stuff to slurp up with each read. */
 #ifndef YY_READ_BUF_SIZE
-#ifdef __ia64__
-/* On IA-64, the buffer size is 16k, not 8k */
-#define YY_READ_BUF_SIZE 16384
-#else
 #define YY_READ_BUF_SIZE 8192
-#endif /* __ia64__ */
 #endif
 
 /* Number of entries by which start-condition stack grows. */
@@ -352,9 +340,9 @@ extern int hsql_lex \
 #undef YY_DECL
 #endif
 
-#line 215 "flex_lexer.l"
+#line 219 "flex_lexer.l"
 
 
-#line 359 "flex_lexer.h"
+#line 347 "flex_lexer.h"
 #undef hsql_IN_HEADER
 #endif /* hsql_HEADER_H */

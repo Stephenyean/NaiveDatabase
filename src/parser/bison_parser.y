@@ -109,6 +109,7 @@ int yyerror(YYLTYPE* llocp, SQLParserResult** result, yyscan_t scanner, const ch
 	hsql::SelectStatement* 	select_stmt;
 	hsql::ImportStatement* 	import_stmt;
 	hsql::CreateStatement* 	create_stmt;
+	hsql::SingleStatement*  single_stmt;
 	hsql::InsertStatement* 	insert_stmt;
 	hsql::DeleteStatement* 	delete_stmt;
 	hsql::UpdateStatement* 	update_stmt;
@@ -146,7 +147,7 @@ int yyerror(YYLTYPE* llocp, SQLParserResult** result, yyscan_t scanner, const ch
 
 /* SQL Keywords */
 %token DEALLOCATE PARAMETERS INTERSECT TEMPORARY TIMESTAMP
-%token DISTINCT NVARCHAR RESTRICT TRUNCATE ANALYZE BETWEEN
+%token DISTINCT NVARCHAR VARCHAR RESTRICT TRUNCATE ANALYZE BETWEEN
 %token CASCADE COLUMNS CONTROL DEFAULT EXECUTE EXPLAIN
 %token HISTORY INTEGER NATURAL PREPARE PRIMARY SCHEMAS
 %token SPATIAL VIRTUAL BEFORE COLUMN CREATE DELETE DIRECT
@@ -159,6 +160,7 @@ int yyerror(YYLTYPE* llocp, SQLParserResult** result, yyscan_t scanner, const ch
 %token LOAD NULL PART PLAN SHOW TEXT TIME VIEW WITH ADD ALL
 %token AND ASC CSV FOR INT KEY NOT OFF SET TBL TOP AS BY IF
 %token IN IS OF ON OR TO
+%token DATABASE USE
 
 
 /*********************************
@@ -171,12 +173,14 @@ int yyerror(YYLTYPE* llocp, SQLParserResult** result, yyscan_t scanner, const ch
 %type <select_stmt> select_statement select_with_paren select_no_paren select_clause
 %type <import_stmt> import_statement
 %type <create_stmt> create_statement
+%type <single_stmt> single_statement
 %type <insert_stmt> insert_statement
 %type <delete_stmt> delete_statement truncate_statement
 %type <update_stmt> update_statement
 %type <drop_stmt>	drop_statement
-%type <sval> 		table_name opt_alias alias file_path
-%type <bval> 		opt_not_exists opt_distinct
+%type <ival>        width
+%type <sval> 		table_name opt_alias alias file_path primary_key_def
+%type <bval> 		opt_not_exists opt_distinct null_type
 %type <uval>		import_file_type opt_join_type column_type
 %type <table> 		from_clause table_ref table_ref_atomic table_ref_name
 %type <table>		join_clause join_table table_ref_name_no_alias
@@ -224,6 +228,7 @@ int yyerror(YYLTYPE* llocp, SQLParserResult** result, yyscan_t scanner, const ch
  ** Section 3: Grammar Definition
  *********************************/
 
+
 // Defines our general input.
 input:
 		statement_list opt_semicolon {
@@ -257,8 +262,34 @@ preparable_statement:
 	|	update_statement { $$ = $1; }
 	|	drop_statement { $$ = $1; }
 	|	execute_statement { $$ = $1; }
+	|   single_statement { $$ = $1; }
 	;
 
+ /******************************
+  * Single Statement
+  ******************************/
+single_statement:
+        CREATE DATABASE IDENTIFIER{
+            $$ = new SingleStatement(SingleStatement::kCreateDatabase);
+			$$->name = $3;
+         }
+	|	DROP DATABASE IDENTIFIER{
+            $$ = new SingleStatement(SingleStatement::kDropDatabase);
+			$$->name = $3;
+         }
+	|	USE DATABASE IDENTIFIER{
+            $$ = new SingleStatement(SingleStatement::kUseDatabase);
+			$$->name = $3;
+         }
+	|	SHOW DATABASE IDENTIFIER{
+            $$ = new SingleStatement(SingleStatement::kShowDatabase);
+			$$->name = $3;
+         }
+	|	SHOW TABLE IDENTIFIER{
+            $$ = new SingleStatement(SingleStatement::kShowTable);
+			$$->name = $3;
+         }
+	;
 
 /******************************
  * Prepared Statement
@@ -327,6 +358,13 @@ create_statement:
 			$$->tableName = $4;
 			$$->columns = $6;
 		}
+	|	CREATE TABLE opt_not_exists table_name '(' column_def_commalist ',' primary_key_def ')' {
+            $$ = new CreateStatement(CreateStatement::kTable);
+            $$->ifNotExists = $3;
+            $$->tableName = $4;
+            $$->columns = $6;
+            $$->primaryKey = $8;
+        }
 	;
 
 opt_not_exists:
@@ -340,17 +378,39 @@ column_def_commalist:
 	;
 
 column_def:
-		IDENTIFIER column_type {
-			$$ = new ColumnDefinition($1, (ColumnDefinition::DataType) $2);
-		}
+        IDENTIFIER column_type width null_type {
+            $$ = new ColumnDefinition($1, (ColumnDefinition::DataType) $2, $3, $4);
+        }
 	;
 
+width:
+        '(' INTVAL ')' {
+            $$ = $2;
+        }
+    |   /**empty**/ {
+            $$ = 0;
+        }
+
+null_type:
+        NOT NULL {
+            $$ = false;
+        }
+    |   /**empty**/ {
+             $$ = true;
+         }
+
+primary_key_def:
+        PRIMARY KEY '(' IDENTIFIER ')' {
+           $$ = $4;
+        }
+    ;
 
 column_type:
 		INT { $$ = ColumnDefinition::INT; }
 	|	INTEGER { $$ = ColumnDefinition::INT; }
 	|	DOUBLE { $$ = ColumnDefinition::DOUBLE; }
 	|	TEXT { $$ = ColumnDefinition::TEXT; }
+	|   VARCHAR { $$ = ColumnDefinition::VARCHAR; }
 	;
 
 /******************************
@@ -696,7 +756,6 @@ table_ref_name_no_alias:
 			$$->name = $1;
 		}
 	;
-
 
 table_name:
 		IDENTIFIER
