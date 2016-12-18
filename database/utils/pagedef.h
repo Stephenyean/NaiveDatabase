@@ -1,6 +1,7 @@
 #ifndef PAGE_DEF
 #define PAGE_DEF
-#include "unistd.h"
+#include <io.h>
+#include <process.h>
 #include <errno.h>
 #include <stdio.h>
 #include <sys/types.h>

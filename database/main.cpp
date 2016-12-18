@@ -1,5 +1,7 @@
 #include "RecordManager.h"
 #include "IX_Manager.h"
+#include "sql-parser\src\SQLParser.h"
+#include "sql-parser\src\sqlhelper.h"
 #include <tchar.h>
 #include <fstream>
 #include <string>
@@ -9,9 +11,33 @@ void testScan();
 void generateData(AttrType attrtype, char* file);
 int main()
 {
+	// std::string query = "CREATE DATABASE ddd;";
+	// return testParser(query);
 	//generateData(STRING, "string.txt");
 	testIX();
 	return 0;
+}
+
+int testParser(std::string query) {
+	// parse a given query
+	hsql::SQLParserResult* result = hsql::SQLParser::parseSQLString(query);
+
+	// check whether the parsing was successful
+	if (result->isValid) {
+		printf("Parsed successfully!\n");
+		printf("Number of statements: %lu\n", result->size());
+
+		for (hsql::SQLStatement* stmt : result->statements) {
+			// process the statements...
+			hsql::printStatementInfo(stmt);
+		}
+
+		return 0;
+	}
+	else {
+		printf("Invalid SQL!\n");
+		return -1;
+	}
 }
 
 void testIX()

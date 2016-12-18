@@ -154,6 +154,26 @@
     <ClInclude Include="IX_Manager.h" />
     <ClInclude Include="pf_defines.h" />
     <ClInclude Include="RecordManager.h" />
+    <ClInclude Include="sql-parser\src\parser\bison_parser.h" />
+    <ClInclude Include="sql-parser\src\parser\flex_lexer.h" />
+    <ClInclude Include="sql-parser\src\parser\parser_typedef.h" />
+    <ClInclude Include="sql-parser\src\sqlhelper.h" />
+    <ClInclude Include="sql-parser\src\SQLParser.h" />
+    <ClInclude Include="sql-parser\src\SQLParserResult.h" />
+    <ClInclude Include="sql-parser\src\sql\CreateStatement.h" />
+    <ClInclude Include="sql-parser\src\sql\DeleteStatement.h" />
+    <ClInclude Include="sql-parser\src\sql\DropStatement.h" />
+    <ClInclude Include="sql-parser\src\sql\ExecuteStatement.h" />
+    <ClInclude Include="sql-parser\src\sql\Expr.h" />
+    <ClInclude Include="sql-parser\src\sql\ImportStatement.h" />
+    <ClInclude Include="sql-parser\src\sql\InsertStatement.h" />
+    <ClInclude Include="sql-parser\src\sql\PrepareStatement.h" />
+    <ClInclude Include="sql-parser\src\sql\SelectStatement.h" />
+    <ClInclude Include="sql-parser\src\sql\SingleStatement.h" />
+    <ClInclude Include="sql-parser\src\sql\SQLStatement.h" />
+    <ClInclude Include="sql-parser\src\sql\statements.h" />
+    <ClInclude Include="sql-parser\src\sql\Table.h" />
+    <ClInclude Include="sql-parser\src\sql\UpdateStatement.h" />
     <ClInclude Include="utils\compare.h" />
     <ClInclude Include="utils\MyBitMap.h" />
     <ClInclude Include="utils\MyHashMap.h" />
@@ -164,10 +184,21 @@
     <ClCompile Include="IX_Manager.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="RecordManager.cpp" />
+    <ClCompile Include="sql-parser\src\parser\bison_parser.cpp" />
+    <ClCompile Include="sql-parser\src\parser\flex_lexer.cpp" />
+    <ClCompile Include="sql-parser\src\sqlhelper.cpp" />
+    <ClCompile Include="sql-parser\src\SQLParser.cpp" />
+    <ClCompile Include="sql-parser\src\SQLParserResult.cpp" />
+    <ClCompile Include="sql-parser\src\sql\destruct.cpp" />
+    <ClCompile Include="sql-parser\src\sql\Expr.cpp" />
     <ClCompile Include="utils\MyBitMap.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="log.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="sql-parser\src\parser\bison_parser.y" />
+    <None Include="sql-parser\src\parser\flex_lexer.l" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

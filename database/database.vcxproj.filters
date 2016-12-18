@@ -54,6 +54,66 @@
     <ClInclude Include="IX_Manager.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="sql-parser\src\sqlhelper.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="sql-parser\src\SQLParser.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="sql-parser\src\SQLParserResult.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="sql-parser\src\sql\CreateStatement.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="sql-parser\src\sql\DeleteStatement.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="sql-parser\src\sql\DropStatement.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="sql-parser\src\sql\ExecuteStatement.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="sql-parser\src\sql\Expr.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="sql-parser\src\sql\ImportStatement.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="sql-parser\src\sql\InsertStatement.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="sql-parser\src\sql\PrepareStatement.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="sql-parser\src\sql\SelectStatement.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="sql-parser\src\sql\SingleStatement.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="sql-parser\src\sql\SQLStatement.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="sql-parser\src\sql\statements.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="sql-parser\src\sql\Table.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="sql-parser\src\sql\UpdateStatement.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="sql-parser\src\parser\bison_parser.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="sql-parser\src\parser\flex_lexer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="sql-parser\src\parser\parser_typedef.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -68,10 +128,39 @@
     <ClCompile Include="IX_Manager.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="sql-parser\src\parser\bison_parser.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="sql-parser\src\parser\flex_lexer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="sql-parser\src\sql\destruct.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="sql-parser\src\sql\Expr.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="sql-parser\src\sqlhelper.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="sql-parser\src\SQLParser.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="sql-parser\src\SQLParserResult.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="log.txt">
       <Filter>资源文件</Filter>
     </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="sql-parser\src\parser\flex_lexer.l">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="sql-parser\src\parser\bison_parser.y">
+      <Filter>源文件</Filter>
+    </None>
   </ItemGroup>
 </Project>
