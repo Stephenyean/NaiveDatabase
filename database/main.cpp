@@ -2,6 +2,7 @@
 #include "IX_Manager.h"
 #include "sql-parser\src\SQLParser.h"
 #include "sql-parser\src\sqlhelper.h"
+#include "Parser.h"
 #include <tchar.h>
 #include <fstream>
 #include <string>
@@ -14,7 +15,9 @@ int main()
 	// std::string query = "CREATE DATABASE ddd;";
 	// return testParser(query);
 	//generateData(STRING, "string.txt");
-	testIX();
+	// testIX();
+	Parser parser;
+	parser.parse();
 	return 0;
 }
 
@@ -134,7 +137,7 @@ void generateData(AttrType attrtype, char* file)
 			fout << rand() << endl;
 		}
 	}
-	else if (attrtype == FLOAT)
+	else if (attrtype == DFLOAT)
 	{
 		for (int i = 0; i < 10000; i++)
 		{

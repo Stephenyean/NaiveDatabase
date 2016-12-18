@@ -48,6 +48,7 @@ RC RM_Manager::createFile(const char * filename, int recordSize)
 RC RM_Manager::destroyFile(const char * filename)
 {
 	// waited to be modified
+	remove(filename);
 	return OK;
 }
 
@@ -506,7 +507,7 @@ RC RM_FileScan::GetNextRec(RM_Record &rec)
 				else
 					currentSlot++;
 			}
-			else if (attrtype == FLOAT)
+			else if (attrtype == DFLOAT)
 			{
 				float recordValue = *(float*)data;
 				float givenValue = *(float*)value;

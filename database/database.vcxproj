@@ -152,8 +152,10 @@
     <ClInclude Include="fileio\FileTable.h" />
     <ClInclude Include="fileio\unistd.h" />
     <ClInclude Include="IX_Manager.h" />
+    <ClInclude Include="Parser.h" />
     <ClInclude Include="pf_defines.h" />
     <ClInclude Include="RecordManager.h" />
+    <ClInclude Include="SM_Manager.h" />
     <ClInclude Include="sql-parser\src\parser\bison_parser.h" />
     <ClInclude Include="sql-parser\src\parser\flex_lexer.h" />
     <ClInclude Include="sql-parser\src\parser\parser_typedef.h" />
@@ -183,7 +185,9 @@
   <ItemGroup>
     <ClCompile Include="IX_Manager.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Parser.cpp" />
     <ClCompile Include="RecordManager.cpp" />
+    <ClCompile Include="SM_Manager.cpp" />
     <ClCompile Include="sql-parser\src\parser\bison_parser.cpp" />
     <ClCompile Include="sql-parser\src\parser\flex_lexer.cpp" />
     <ClCompile Include="sql-parser\src\sqlhelper.cpp" />

@@ -114,6 +114,12 @@
     <ClInclude Include="sql-parser\src\parser\parser_typedef.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="SM_Manager.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Parser.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -147,6 +153,12 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="sql-parser\src\SQLParserResult.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SM_Manager.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Parser.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
