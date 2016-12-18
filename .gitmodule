@@ -1,3 +1,0 @@
-[submodule "sql-parser"]
-	path = database/sql-parser
-	url = git@github.com:keyunjie96/sql-parser.git
