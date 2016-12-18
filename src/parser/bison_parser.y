@@ -141,7 +141,7 @@ int yyerror(YYLTYPE* llocp, SQLParserResult** result, yyscan_t scanner, const ch
  ** Token Definition
  *********************************/
 %token <sval> IDENTIFIER STRING
-%token <fval> FLOATVAL
+%token <fval> DFLOATVAL
 %token <ival> INTVAL
 %token <uval> NOTEQUALS LESSEQ GREATEREQ
 
@@ -160,7 +160,7 @@ int yyerror(YYLTYPE* llocp, SQLParserResult** result, yyscan_t scanner, const ch
 %token LOAD NULL PART PLAN SHOW TEXT TIME VIEW WITH ADD ALL
 %token AND ASC CSV FOR INT KEY NOT OFF SET TBL TOP AS BY IF
 %token IN IS OF ON OR TO
-%token DATABASE USE
+%token DATABASE USE READ QUIT
 
 
 /*********************************
@@ -196,6 +196,7 @@ int yyerror(YYLTYPE* llocp, SQLParserResult** result, yyscan_t scanner, const ch
 
 %type <str_vec>		ident_commalist opt_column_list
 %type <expr_vec> 	expr_list select_list literal_list
+
 %type <table_vec> 	table_ref_commalist
 %type <update_vec>	update_clause_commalist
 %type <column_vec>	column_def_commalist
@@ -289,6 +290,13 @@ single_statement:
             $$ = new SingleStatement(SingleStatement::kShowTable);
 			$$->name = $3;
          }
+	|	READ FILE IDENTIFIER{
+			$$ = new SingleStatement(SingleStatement::kReadFile);
+			$$->name = $3;
+	}
+	|	QUIT{
+		$$ = new SingleStatement(SingleStatement::kQuit);
+	}
 	;
 
 /******************************
@@ -393,10 +401,10 @@ width:
 
 null_type:
         NOT NULL {
-            $$ = false;
+            $$ = true;
         }
     |   /**empty**/ {
-             $$ = true;
+             $$ = false;
          }
 
 primary_key_def:
@@ -406,10 +414,10 @@ primary_key_def:
     ;
 
 column_type:
-		INT { $$ = ColumnDefinition::INT; }
-	|	INTEGER { $$ = ColumnDefinition::INT; }
-	|	DOUBLE { $$ = ColumnDefinition::DOUBLE; }
-	|	TEXT { $$ = ColumnDefinition::TEXT; }
+		INT { $$ = ColumnDefinition::DINT; }
+	|	INTEGER { $$ = ColumnDefinition::DINT; }
+	|	DOUBLE { $$ = ColumnDefinition::DFLOAT; }
+	|	TEXT { $$ = ColumnDefinition::STRING; }
 	|   VARCHAR { $$ = ColumnDefinition::VARCHAR; }
 	;
 
@@ -687,7 +695,7 @@ string_literal:
 
 
 num_literal:
-		FLOATVAL { $$ = Expr::makeLiteral($1); }
+		DFLOATVAL { $$ = Expr::makeLiteral($1); }
 	|	int_literal
 	;
 

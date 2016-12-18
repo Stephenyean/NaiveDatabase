@@ -9,17 +9,17 @@ namespace hsql {
      */
     struct ColumnDefinition {
         enum DataType {
-            TEXT,
-            INT,
-            DOUBLE,
+            DINT,
+            DFLOAT,
+            STRING,
             VARCHAR
         };
 
-        ColumnDefinition(char* name, DataType type, int64_t width, bool isnull) :
+        ColumnDefinition(char* name, DataType type, int64_t width, bool notnull) :
             name(name),
             type(type),
             width(width),
-            isnull(isnull) {}
+            notnull(notnull) {}
 
 
         virtual ~ColumnDefinition() {
@@ -30,7 +30,7 @@ namespace hsql {
         char* name;
         DataType type;
         int64_t width; // when width = 0 means not define
-        bool isnull;
+        bool notnull;
     };
 
     /**

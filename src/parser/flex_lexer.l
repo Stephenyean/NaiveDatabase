@@ -172,8 +172,10 @@ OR			TOKEN(OR)
 TO			TOKEN(TO)
 
 DATABASE    TOKEN(DATABASE)
-USE		TOKEN(USE)
+USE			TOKEN(USE)
 VARCHAR	    TOKEN(VARCHAR)
+READ		TOKEN(READ)
+QUIT		TOKEN(QUIT)
 
 
 
@@ -188,7 +190,7 @@ VARCHAR	    TOKEN(VARCHAR)
 [0-9]+"."[0-9]* |
 "."[0-9]*	{
 	yylval->fval = atof(yytext);
-	return SQL_FLOATVAL;
+	return SQL_DFLOATVAL;
 }
 
 [0-9]+	{
@@ -223,5 +225,5 @@ VARCHAR	    TOKEN(VARCHAR)
  ***************************/
 
 int yyerror(const char *msg) {
-    fprintf(stderr, "[SQL-Lexer-Error] %s\n",msg); return 0;
+	fprintf(stderr, "[SQL-Lexer-Error] %s\n",msg); return 0;
 }
