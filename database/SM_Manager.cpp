@@ -68,7 +68,7 @@ RC_Return SM_Manager::DropDb(const char * dbName)
 		cout << "Database " << dbName << " is not exists.\n";
 		return OPEN_ERROR;
 	}
-	if (rmdir(dbName) == 0)
+	if (remove_dir(dbName) == 0)
 	{
 		if (strcmp(dbName, work_database.c_str()) == 0)
 		{
@@ -78,9 +78,10 @@ RC_Return SM_Manager::DropDb(const char * dbName)
 	}
 	else
 	{
-		return CREATE_ERROR;
+		cout << "Database " << dbName << " is using.\n";
+		return DROP_ERROR;
 	}
-	return RC_Return();
+	
 }
 
 RC_Return SM_Manager::CreateTable(const char * relName, int attrCount, AttrInfo * attributes)
@@ -227,4 +228,76 @@ std::vector<std::string> SM_Manager::GetTables(const char *dbName)
 		FindClose(hFind);
 	}
 	return tableNames;
+}
+
+bool SM_Manager::remove_dir(const std::string &refcstrRootDirectory, bool bDeleteSubdirectories)
+{
+	bool            bSubdirectory = false;       // Flag, indicating whether
+												 // subdirectories have been found
+	HANDLE          hFile;                       // Handle to directory
+	std::string     strFilePath;                 // Filepath
+	std::string     strPattern;                  // Pattern
+	WIN32_FIND_DATA FileInformation;             // File information
+
+
+	strPattern = refcstrRootDirectory + "\\*.*";
+	hFile = ::FindFirstFile(strPattern.c_str(), &FileInformation);
+	if (hFile != INVALID_HANDLE_VALUE)
+	{
+		do
+		{
+			if (FileInformation.cFileName[0] != '.')
+			{
+				strFilePath.erase();
+				strFilePath = refcstrRootDirectory + "\\" + FileInformation.cFileName;
+
+				if (FileInformation.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+				{
+					if (bDeleteSubdirectories)
+					{
+						// Delete subdirectory
+						int iRC = remove_dir(strFilePath, bDeleteSubdirectories);
+						if (iRC)
+							return iRC;
+					}
+					else
+						bSubdirectory = true;
+				}
+				else
+				{
+					// Set file attributes
+					if (::SetFileAttributes(strFilePath.c_str(),
+						FILE_ATTRIBUTE_NORMAL) == FALSE)
+						return ::GetLastError();
+
+					// Delete file
+					if (::DeleteFile(strFilePath.c_str()) == FALSE)
+						return ::GetLastError();
+				}
+			}
+		} while (::FindNextFile(hFile, &FileInformation) == TRUE);
+
+		// Close handle
+		::FindClose(hFile);
+
+		DWORD dwError = ::GetLastError();
+		if (dwError != ERROR_NO_MORE_FILES)
+			return dwError;
+		else
+		{
+			if (!bSubdirectory)
+			{
+				// Set directory attributes
+				if (::SetFileAttributes(refcstrRootDirectory.c_str(),
+					FILE_ATTRIBUTE_NORMAL) == FALSE)
+					return ::GetLastError();
+
+				// Delete directory
+				if (::RemoveDirectory(refcstrRootDirectory.c_str()) == FALSE)
+					return ::GetLastError();
+			}
+		}
+	}
+
+	return 0;
 }

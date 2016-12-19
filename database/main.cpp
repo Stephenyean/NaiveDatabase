@@ -1,7 +1,7 @@
 #include "RecordManager.h"
 #include "IX_Manager.h"
-#include "sql-parser\src\SQLParser.h"
-#include "sql-parser\src\sqlhelper.h"
+#include "parser\src\SQLParser.h"
+#include "parser\src\sqlhelper.h"
 #include "Parser.h"
 #include <tchar.h>
 #include <fstream>

@@ -62,6 +62,7 @@ RC IX_Manager::OpenIndex(const char* fileName, int indexNo, IX_IndexHandle &inde
 RC IX_Manager::DestroyIndex(const char* fileName, int indexNo)
 {
 	// waite to be modified;
+	remove((string(fileName) + "." + to_string(indexNo)).c_str());
 	return OK;
 }
 
@@ -673,7 +674,7 @@ RC IX_IndexScan::SearchEntry(int& pageNum, int& position)
 				}
 			}
 		}
-		else if (attrtype == FLOAT)
+		else if (attrtype == DFLOAT)
 		{
 
 		}

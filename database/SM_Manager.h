@@ -47,6 +47,7 @@ public:
 	RC_Return DropTableAttrInfo(const char*dbName, const char *relName);
 	std::vector<std::string> GetTables(const char *dbName);
 private:
+	bool remove_dir(const std::string &refcstrRootDirectory, bool bDeleteSubdirectories = true);
 	IX_Manager *ixm;
 	RM_Manager *rmm;
 	std::vector<RM_FileHandle> rmHandles;

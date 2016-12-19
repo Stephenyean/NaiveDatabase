@@ -28,7 +28,6 @@ lib-test/
 *.lib
 
 # Executables
-*.exe
 *.out
 *.app
 

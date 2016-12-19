@@ -14,7 +14,9 @@ namespace hsql {
 			kDropDatabase,
 			kUseDatabase,
 			kShowDatabase,
-			kShowTable
+			kShowTable,
+			kReadFile,
+			kQuit
 		};
 
 		SingleStatement(SingleType type) :
