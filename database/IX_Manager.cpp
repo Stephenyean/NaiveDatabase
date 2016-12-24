@@ -10,7 +10,8 @@ IX_Manager::IX_Manager(FileManager* fm, BufPageManager* bpm)
 
 IX_Manager::~IX_Manager()
 {
-
+	fm = nullptr;
+	bpm = nullptr;
 }
 
 RC IX_Manager::CreateIndex(const char* fileName, int indexNo, AttrType attrType, int attrLength)
@@ -56,6 +57,8 @@ RC IX_Manager::OpenIndex(const char* fileName, int indexNo, IX_IndexHandle &inde
 	indexHandle.bpm = this->bpm;
 	indexHandle.fm = this->fm;
 	indexHandle.fileID = fileID;
+	indexHandle.ixIndex = index;
+	indexHandle.ixHead = ixHead;
 	return OK;
 }
 
@@ -155,6 +158,29 @@ RC IX_IndexHandle::RecursiveInsertEntry(int pageNum, void *pData, const RID &rid
 					cout << "[info] insert index " << keyData << endl;
 				}
 			}
+			else if (ixHead->attrType == STRING || ixHead->attrType == VARCHAR)
+			{
+				char* keyData = (char*)pData;
+				char* keyArray = (char*)((char*)b + sizeof(IX_Page_head));
+				IX_Node* nodeArray = (IX_Node*)((char*)keyArray + ixHead->attrLength * ixHead->degree);
+
+				nodeArray[pageHead->numEntries + 1] = nodeArray[pageHead->numEntries];
+				for (int i = pageHead->numEntries; i > position; i--)
+				{
+					memcpy((void*)(keyArray + ixHead->attrLength * i), (void*)(keyArray + ixHead->attrLength * (i - 1)), ixHead->attrLength);
+					//keyArray[i] = keyArray[i - 1];
+					nodeArray[i] = nodeArray[i - 1];
+				}
+				int copyLength = strlen((char*)keyData);
+				memcpy((void*)(keyArray + ixHead->attrLength * position), (void*)keyData, copyLength);
+				//keyArray[position] = keyData;
+				nodeArray[position].nextPage = -1;
+				nodeArray[position].rid = rid;
+				if (verbose == 2)
+				{
+					cout << "[info] insert index " << keyData << endl;
+				}
+			}
 			// waited to add other kind of data(float char)
 			pageHead->numEntries++;
 			bpm->markDirty(pageNum);
@@ -163,6 +189,7 @@ RC IX_IndexHandle::RecursiveInsertEntry(int pageNum, void *pData, const RID &rid
 		else // full, split
 		{
 			// allocate a new page
+			cout << "[Info]: Insert Index\n";
 			BufType newb = bpm->allocPage(fileID, ixHead->numPages, index, false);
 			initIxPage((char*)newb);
 			bpm->markDirty(index);
@@ -234,7 +261,66 @@ RC IX_IndexHandle::RecursiveInsertEntry(int pageNum, void *pData, const RID &rid
 				if (pageNumIsRoot)
 					pageHead->parentPage = parent;
 			}
-			
+			else if (ixHead->attrType == STRING || ixHead->attrType == VARCHAR)
+			{
+				char* keyArray = (char*)((char*)b + sizeof(IX_Page_head));
+				IX_Node* nodeArray = (IX_Node*)((char*)keyArray + ixHead->attrLength * ixHead->degree);
+				char* newKeyArray = (char*)((char*)newb + sizeof(IX_Page_head));
+				IX_Node* newNodeArray = (IX_Node*)((char*)newKeyArray + ixHead->attrLength * ixHead->degree);
+				// copy half of the data to the new page
+				int N = ixHead->degree;
+				// modify the data
+				int M = sizeof(IX_Page_head);
+				if (position < (N + 1) / 2)
+				{
+					//memcpy((char*)newb + M, (char*)b + M + ixHead->attrLength * ((N + 1) / 2 - 1), ixHead->attrLength * (N - ((N + 1) / 2 - 1)));
+					//memcpy((char*)newb + M + N * ixHead->attrLength, (char*)b + M + N * ixHead->attrLength + sizeof(IX_Node) * ((N + 1) / 2 - 1), M * (N - ((N + 1) / 2 - 1)));
+					for (int j = (N + 1) / 2; j < N + 1; j++)
+					{
+						memcpy(newKeyArray + ixHead->attrLength*(j - (N + 1) / 2), keyArray + ixHead->attrLength*(j - 1), ixHead->attrLength);
+						newNodeArray[j - (N + 1) / 2] = nodeArray[j - 1];
+					}
+					for (int j = (N + 1) / 2 - 1; j > position; j--)
+					{
+						memcpy(newKeyArray + ixHead->attrLength*j, keyArray + ixHead->attrLength*(j - 1), ixHead->attrLength);
+						nodeArray[j] = nodeArray[j - 1];
+					}
+					memcpy(keyArray + ixHead->attrLength*position, pData, ixHead->attrLength);
+					nodeArray[position].nextPage = -1;
+					nodeArray[position].rid = rid;
+					// add other types
+				}
+				else
+				{
+					for (int j = 0; j < N + 1 - (N + 1) / 2; j++)
+					{
+						if (j < position - (N + 1) / 2)
+						{
+							memcpy(newKeyArray + ixHead->attrLength*j, keyArray + ixHead->attrLength*(j + (N + 1) / 2), ixHead->attrLength);
+							newNodeArray[j] = nodeArray[j + (N + 1) / 2];
+						}
+						else if (j > position - (N + 1) / 2)
+						{
+							memcpy(newKeyArray + ixHead->attrLength*j, keyArray + ixHead->attrLength*(j + (N + 1) / 2 - 1), ixHead->attrLength);
+							newNodeArray[j] = nodeArray[j + (N + 1) / 2 - 1];
+						}
+						else
+						{
+							memcpy(newKeyArray + ixHead->attrLength*j, pData, ixHead->attrLength);
+							newNodeArray[j].nextPage = -1;
+							newNodeArray[j].rid = rid;
+						}
+					}
+				}
+				int parent = pageHead->parentPage;
+				bool pageNumIsRoot = false;
+				if (pageNum == ixHead->rootPage)
+					pageNumIsRoot = true;
+				RC rc = RecursiveSplitNode(pageNum, ixHead->numPages - 1, (void*)newKeyArray, parent);
+				newPageHead->parentPage = parent;
+				if (pageNumIsRoot)
+					pageHead->parentPage = parent;
+			}
 		}
 	}
 	return OK;
@@ -284,6 +370,18 @@ RC IX_IndexHandle::RecursiveSplitNode(int pageNum, int newPageNum, void* pData, 
 			IX_Node* nodeArray = (IX_Node*)((char*)keyArray + ixHead->degree * ixHead->attrLength);
 			nodeArray[0].nextPage = pageNum;
 			nodeArray[1].nextPage = newPageNum;
+			keyArray = nullptr;
+			nodeArray = nullptr;
+		}
+		else if (ixHead->attrType == STRING || ixHead->attrType == VARCHAR)
+		{
+			char* keyArray = (char*)((char*)b + sizeof(IX_Page_head));
+			keyArray[0] = *(int*)pData;
+			IX_Node* nodeArray = (IX_Node*)((char*)keyArray + ixHead->degree * ixHead->attrLength);
+			nodeArray[0].nextPage = pageNum;
+			nodeArray[1].nextPage = newPageNum;
+			keyArray = nullptr;
+			nodeArray = nullptr;
 		}
 		// add other type
 		parent = ixHead->numPages - 1;
@@ -318,12 +416,12 @@ RC IX_IndexHandle::RecursiveSplitNode(int pageNum, int newPageNum, void* pData, 
 				IX_Node* newNodeArray = (IX_Node*)((char*)newKeyArray + ixHead->attrLength * ixHead->degree);
 				// copy half of the data to the new page
 				int N = ixHead->degree;
-				cout << keyData << " " << newPageNum << endl;
+				//cout << keyData << " " << newPageNum << endl;
 				for (int j = 0; j < N; j++)
 				{
-					cout << nodeArray[j].nextPage << " " << keyArray[j] << " ";
+					//cout << nodeArray[j].nextPage << " " << keyArray[j] << " ";
 				}
-				cout << nodeArray[N].nextPage << endl;
+				//cout << nodeArray[N].nextPage << endl;
 				int newData = -1;
 				if (trans((N + 1) / 2, position) >= 0)
 					newData = keyArray[trans((N + 1) / 2, position)];
@@ -358,16 +456,6 @@ RC IX_IndexHandle::RecursiveSplitNode(int pageNum, int newPageNum, void* pData, 
 					else
 						nodeArray[j].nextPage = newPageNum;
 				}
-				for (int j = 0; j < (N + 1)/2; j++)
-				{
-					cout << nodeArray[j].nextPage << " " << keyArray[j] << " ";
-				}
-				cout << nodeArray[(N + 1) / 2].nextPage << endl;
-				for (int j = 0; j < (N - (N + 1)/2); j++)
-				{
-					cout << newNodeArray[j].nextPage << " " << newKeyArray[j] << " ";
-				}
-				cout << newNodeArray[N - (N + 1) / 2].nextPage << endl;
 				int parent3 = parent;
 				if (position >= (N + 1) / 2)
 					parent = ixHead->numPages - 1;
@@ -379,6 +467,79 @@ RC IX_IndexHandle::RecursiveSplitNode(int pageNum, int newPageNum, void* pData, 
 				newPageHead->parentPage = parent2;
 				if (pageNumIsRoot)
 					pageHead->parentPage = parent2;
+			}
+			else if (ixHead->attrType == STRING || ixHead->attrType == VARCHAR)
+			{
+				char* keyArray = (char*)((char*)b + sizeof(IX_Page_head));
+				char* keyData = (char*)pData;
+				IX_Node* nodeArray = (IX_Node*)((char*)keyArray + ixHead->attrLength * ixHead->degree);
+				char* newKeyArray = (char*)((char*)newb + sizeof(IX_Page_head));
+				IX_Node* newNodeArray = (IX_Node*)((char*)newKeyArray + ixHead->attrLength * ixHead->degree);
+				// copy half of the data to the new page
+				int N = ixHead->degree;
+				char* newData = new char[ixHead->attrLength];
+				if (trans((N + 1) / 2, position) >= 0)
+					memcpy(newData, keyArray + ixHead->attrLength * trans((N + 1) / 2, position), ixHead->attrLength);
+				else
+					memcpy(newData, keyData, ixHead->attrLength);
+				// modify the data
+				for (int j = (N + 1) / 2 + 1; j < N + 1; j++)
+				{
+					if (trans(j, position) >= 0)
+						memcpy(newKeyArray + ixHead->attrLength*(j - (N + 1) / 2 - 1), keyArray + ixHead->attrLength*trans(j, position), ixHead->attrLength);
+					else
+						memcpy(newKeyArray + ixHead->attrLength*(j - (N + 1) / 2 - 1), keyData, ixHead->attrLength);
+				}
+				for (int j = (N + 1) / 2 - 1; j >= 0; j--)
+				{
+					if (trans(j, position) >= 0)
+						memcpy(keyArray + ixHead->attrLength*j, keyArray + ixHead->attrLength*trans(j, position), ixHead->attrLength);
+					else
+						memcpy(keyArray + ixHead->attrLength*j, keyData, ixHead->attrLength);
+				}
+				for (int j = (N + 1) / 2 + 1; j < N + 2; j++)
+				{
+					if (trans2(j, position) >= 0)
+						newNodeArray[j - (N + 1) / 2 - 1] = nodeArray[trans2(j, position)];
+					else
+						newNodeArray[j - (N + 1) / 2 - 1].nextPage = newPageNum;
+				}
+				for (int j = (N + 1) / 2; j >= 0; j--)
+				{
+					if (trans2(j, position) >= 0)
+						nodeArray[j] = nodeArray[trans2(j, position)];
+					else
+						nodeArray[j].nextPage = newPageNum;
+				}
+				//for (int j = 0; j < (N + 1)/2; j++)
+				//{
+				//	cout << nodeArray[j].nextPage << " " << keyArray[j] << " ";
+				//}
+				//cout << nodeArray[(N + 1) / 2].nextPage << endl;
+				//for (int j = 0; j < (N - (N + 1)/2); j++)
+				//{
+				//	cout << newNodeArray[j].nextPage << " " << newKeyArray[j] << " ";
+				//}
+				//cout << newNodeArray[N - (N + 1) / 2].nextPage << endl;
+				int parent3 = parent;
+				if (position >= (N + 1) / 2)
+					parent = ixHead->numPages - 1;
+				bool pageNumIsRoot = false;
+				if (parent3 == ixHead->rootPage)
+					pageNumIsRoot = true;
+				int parent2 = pageHead->parentPage;
+				RC rc = RecursiveSplitNode(parent3, ixHead->numPages - 1, (void*)(&newData), parent2);
+				newPageHead->parentPage = parent2;
+				if (pageNumIsRoot)
+					pageHead->parentPage = parent2;
+
+				delete[]newData;
+				newData = nullptr;
+				newNodeArray = nullptr;
+				newKeyArray = nullptr;
+				nodeArray = nullptr;
+				keyData = nullptr;
+				keyArray = nullptr;
 			}
 			// add other type
 			return OK;
@@ -399,6 +560,26 @@ RC IX_IndexHandle::RecursiveSplitNode(int pageNum, int newPageNum, void* pData, 
 				}
 				keyArray[position] = keyData;
 				nodeArray[position + 1].nextPage = newPageNum;
+				keyArray = nullptr;
+				nodeArray = nullptr;
+			}
+			else if (ixHead->attrType == STRING || ixHead->attrType == VARCHAR)
+			{
+				char* keyData = (char*)pData;
+				char* keyArray = (char*)((char*)b + sizeof(IX_Page_head));
+				IX_Node* nodeArray = (IX_Node*)((char*)keyArray + ixHead->attrLength * ixHead->degree);
+
+				//nodeArray[pageHead->numEntries + 1] = nodeArray[pageHead->numEntries];
+				for (int i = pageHead->numEntries; i > position; i--)
+				{
+					memcpy(keyArray + ixHead->attrLength*i, keyArray + ixHead->attrLength*(i - 1), ixHead->attrLength);
+					nodeArray[i + 1] = nodeArray[i];
+				}
+				memcpy(keyArray + ixHead->attrLength*position, keyData, ixHead->attrLength);
+				nodeArray[position + 1].nextPage = newPageNum;
+				keyArray = nullptr;
+				nodeArray = nullptr;
+				keyData = nullptr;
 			}
 			pageHead->numEntries++;
 		}
@@ -441,7 +622,7 @@ RC IX_IndexHandle::getPosition(void* pData, int& position, BufType b)
 		IX_Node* nodeArray = (IX_Node*)((char*)keyArray + ixHead->attrLength * ixHead->degree);
 		for (int i = 0; i < pageHead->numEntries; i++)
 		{
-			if (keyData < keyArray[i])
+			if (keyData <= keyArray[i])
 			{
 				position = i;
 				break;
@@ -449,6 +630,27 @@ RC IX_IndexHandle::getPosition(void* pData, int& position, BufType b)
 		}
 		if (position == -1)
 			position = pageHead->numEntries;
+		keyArray = nullptr;
+		nodeArray = nullptr;
+	}
+	else if (ixHead->attrType == STRING || ixHead->attrType == VARCHAR)
+	{
+		char* keyData = (char*)pData;
+		char* keyArray = (char*)((char*)b + sizeof(IX_Page_head));
+		IX_Node* nodeArray = (IX_Node*)((char*)keyArray + ixHead->attrLength * ixHead->degree);
+		for (int i = 0; i < pageHead->numEntries; i++)
+		{
+			if (string(keyData) < string(keyArray + i*ixHead->attrLength))
+			{
+				position = i;
+				break;
+			}
+		}
+		if (position == -1)
+			position = pageHead->numEntries;
+		keyArray = nullptr;
+		nodeArray = nullptr;
+		keyData = nullptr;
 	}
 	// add two other kind of data
 	return OK;
@@ -467,6 +669,21 @@ RC IX_IndexHandle::getMiddleData(void* pData, BufType b, int position, void* p)
 			p = (void*)keyArray[(pageHead->numEntries + 1) / 2 - 1];
 		else
 			p = pData;
+		keyArray = nullptr;
+		nodeArray = nullptr;
+	}
+	else if (ixHead->attrType == STRING || ixHead->attrType == VARCHAR)
+	{
+		char* keyArray = (char*)((char*)b + sizeof(IX_Page_head));
+		IX_Node* nodeArray = (IX_Node*)((char*)keyArray + ixHead->attrLength * ixHead->degree);
+		if (position >(pageHead->numEntries + 1) / 2)
+			p = (void*)(keyArray + ixHead->attrLength*((pageHead->numEntries + 1) / 2));
+		else if (position < (pageHead->numEntries + 1) / 2)
+			p = (void*)(keyArray + ixHead->attrLength*((pageHead->numEntries + 1) / 2 - 1));
+		else
+			p = pData;
+		keyArray = nullptr;
+		nodeArray = nullptr;
 	}
 	// add two other kind of data
 	return OK;
@@ -511,7 +728,7 @@ RC IX_IndexHandle::DeleteEntry  (void *pData, const RID &rid)  // Delete index e
 		nodeArray = (IX_Node*)((char*)b + sizeof(IX_Page_head) + ixHead->attrLength * ixHead->degree);
 		pageNum = nodeArray[position].nextPage;
 	}while(!pageHead->isLeafPage);
-	int result = -1;
+	bool found = false;
 	if (ixHead->attrType == DINT)
 	{
 		int* keyArray = (int*)(b + sizeof(IX_Page_head));
@@ -520,32 +737,20 @@ RC IX_IndexHandle::DeleteEntry  (void *pData, const RID &rid)  // Delete index e
 		{
 			if (position >= pageHead->numEntries)
 			{
-				// get to next page
 				if (pageHead->nextpage == -1)
-				{
-					// no next page;
 					break;
-				}
 				else
 				{
-					pageNum = pageHead->nextpage;
-					b = bpm->getPage(fileID, pageNum, index);
+					b = bpm->getPage(fileID, pageHead->nextpage, index);
+					pageHead = (IX_Page_head*)b;
+					getPosition(pData, position, b);
 					nodeArray = (IX_Node*)((char*)b + sizeof(IX_Page_head) + ixHead->attrLength * ixHead->degree);
-					keyArray = (int*)(b + sizeof(IX_Page_head));
-					position = 0;
-					if (verbose = 2)
-						cout << "[info] get to next page to delete " << keyData << endl;
+					pageNum = nodeArray[position].nextPage;
 				}
 			}
-			if (keyArray[position] > keyData)
-			{
+			else if (keyArray[position] != keyData)
 				break;
-			}
-			else if (keyArray[position] < keyData)
-			{
-				position++;
-			}
-			else if(nodeArray[position].rid.compare(rid))
+			else if (nodeArray[position].rid.compare(rid))
 			{
 				// delete this record;
 				for (int j = position; j < pageHead->numEntries - 1; j++)
@@ -554,22 +759,25 @@ RC IX_IndexHandle::DeleteEntry  (void *pData, const RID &rid)  // Delete index e
 					nodeArray[j] = nodeArray[j + 1];
 				}
 				pageHead->numEntries--;
-				result = 0;
+				found = true;
 				bpm->markDirty(index);
 				if (verbose == 2)
 					cout << "[info] delete entry with data " << keyData << endl;
+				break;
 			}
+			else
+				position++;
 
 		}
 	}
-	if (result == -1)
+	if (found == false)
 	{
 		if (verbose == 2)
 		{
 			cout << "[info] cann't find " << *(int*)pData << " and delete it\n";
 		}
 	}
-	else if (result == 0)
+	else if (found == true)
 	{
 		if (pageHead->numEntries <= 0)
 		{
@@ -582,11 +790,13 @@ RC IX_IndexHandle::DeleteEntry  (void *pData, const RID &rid)  // Delete index e
 
 IX_IndexScan::IX_IndexScan()                                 // Constructor
 {
-
+	value = nullptr;
+	pageHead = nullptr;
 }
 IX_IndexScan::~IX_IndexScan()                                 // Destructor
 {
-
+	value = nullptr;
+	pageHead = nullptr;
 }
 
 RC IX_IndexScan::OpenScan (const IX_IndexHandle &indexHandle, CompOp compOp, void *value)
@@ -610,6 +820,7 @@ RC IX_IndexScan::OpenScan (const IX_IndexHandle &indexHandle, CompOp compOp, voi
 		return ERROR;
 	}
 	b = indexHandle.bpm->getPage(indexHandle.fileID, currentPage, index);
+	scanIndex = index;
 	pageHead = (IX_Page_head*)b;
 	return OK;
 }
@@ -630,6 +841,7 @@ RC IX_IndexScan::SearchEntry(int& pageNum, int& position)
 	if (!pageHead->isLeafPage)
 	{
 		IX_Node* nodeArray = (IX_Node*)((char*)b + sizeof(IX_Page_head) + attrLength*indexHandle.ixHead->degree);
+		
 		if (compOp == LE_OP || compOp == LT_OP)
 		{
 			pageNum = nodeArray[0].nextPage;
@@ -642,7 +854,7 @@ RC IX_IndexScan::SearchEntry(int& pageNum, int& position)
 				int* keyArray = (int*)((char*)b + sizeof(IX_Page_head));
 				if (keyValue <= keyArray[0])
 					pageNum = nodeArray[0].nextPage;
-				if (keyArray[pageHead->numEntries - 1] > keyValue)
+				else if (keyValue > keyArray[pageHead->numEntries - 1])
 					pageNum = nodeArray[pageHead->numEntries].nextPage;
 				else
 				{
@@ -653,12 +865,35 @@ RC IX_IndexScan::SearchEntry(int& pageNum, int& position)
 					}
 				}
 			}
+			else if (attrtype == STRING || attrtype == VARCHAR)
+			{
+				char* keyValue = (char*)value;
+				char* keyArray = (char*)((char*)b + sizeof(IX_Page_head));
+				if (string(keyValue) <= string(keyArray))
+					pageNum = nodeArray[0].nextPage;
+				if (string(keyArray + (pageHead->numEntries - 1)*attrLength) > string(keyValue))
+					pageNum = nodeArray[pageHead->numEntries].nextPage;
+				else
+				{
+					for (int j = 1; j < pageHead->numEntries; j++)
+					{
+						if (string(keyArray + j * attrLength) >= string(keyValue))
+							pageNum = nodeArray[j].nextPage;
+					}
+				}
+			}
 			// add other types
 		}
 		return SearchEntry(pageNum, position);
 	}
 	else if(pageHead->isLeafPage)
 	{
+		if (pageHead->numEntries == 0)
+		{
+			if (pageHead->nextpage < 0)
+				return IX_NO_SUCH_INDEX;
+			return SearchEntry(pageHead->nextpage, position);
+		}
 		bool found = false;
 		if (attrtype == DINT)
 		{
@@ -674,16 +909,26 @@ RC IX_IndexScan::SearchEntry(int& pageNum, int& position)
 				}
 			}
 		}
-		else if (attrtype == DFLOAT)
+		else if (attrtype == STRING || attrtype ==  VARCHAR)
 		{
-
+			char* keyValue = (char*)value;
+			char* keyArray = (char*)((char*)b + sizeof(IX_Page_head));
+			for (int j = 0; j < pageHead->numEntries; j++)
+			{
+				if (satisfiesCondition(string(keyArray + j * attrLength), string(keyValue)))
+				{
+					found = true;
+					position = j;
+					break;
+				}
+			}
 		}
 		// add other types
 
 		if (found)
 			return OK;
 		else
-			return ERROR;
+			return IX_NO_SUCH_INDEX;
 	}
 	return OK;
 }
@@ -707,6 +952,10 @@ bool IX_IndexScan::satisfiesCondition(T key, T value) {
 	case GE_OP:
 		if (key >= value) match = true;
 		break;
+	case NO_OP:
+	case NOTNULL_OP:
+		match = true;
+		break;
 	default:
 		break;
 	}
@@ -720,15 +969,17 @@ bool IX_IndexScan::satisfiesCondition(T key, T value) {
 //		b. if no judge if current value satisfy condition
 //			(1) yes, return current rid, and positin++
 //			(2) no,  return ERROR
-RC IX_IndexScan::GetNextEntry(RID &rid)                         // Get next matching entry
+RC IX_IndexScan::GetNextEntry(RID &rid, bool DeleteMode)                         // Get next matching entry
 {
+	RC rc;
 	if (currentPage == -1)
 	{
 		cout << "[info] error to open index scan\n";
 		return ERROR;
 	}
 
-	while (true)
+	bool found = false;
+	while (!found)
 	{
 		if (currentPosition == pageHead->numEntries)
 		{
@@ -741,8 +992,11 @@ RC IX_IndexScan::GetNextEntry(RID &rid)                         // Get next matc
 				b = indexHandle.bpm->getPage(indexHandle.fileID, currentPage, index);
 				pageHead = (IX_Page_head*)b;
 				currentPosition = 0;
+				scanIndex = index;
 			}
+			continue;
 		}
+		found = true;
 		IX_Node* nodeArray = (IX_Node*)((char*)b + sizeof(IX_Page_head) + attrLength* indexHandle.ixHead->degree);
 		if (attrtype == DINT)
 		{
@@ -752,15 +1006,57 @@ RC IX_IndexScan::GetNextEntry(RID &rid)                         // Get next matc
 			{
 				rid.setPageNum(nodeArray[currentPosition].rid.getPageNum());
 				rid.setSlotNum(nodeArray[currentPosition].rid.getSlotNum());
-				currentPosition++;
-				return OK;
+				if (DeleteMode)
+				{
+					pageHead->numEntries--;
+					for (int j = currentPosition; j < pageHead->numEntries; j++)
+					{
+						keyArray[j] = keyArray[j + 1];
+						nodeArray[j] = nodeArray[j + 1];
+					}
+					indexHandle.bpm->markDirty(scanIndex);
+				}
+				else
+					currentPosition++;
+
+				rc = OK;
+				found = true;
 			}
 			else
-				return ERROR;
-
+				rc = ERROR;
+			keyArray = nullptr;
 		}
+		else if (attrtype == STRING || attrtype == VARCHAR)
+		{
+			char* keyValue = (char*)value;
+			char* keyArray = (char*)((char*)b + sizeof(IX_Page_head));
+			if (satisfiesCondition(string(keyArray + currentPosition * attrLength), string(keyValue)))
+			{
+				rid.setPageNum(nodeArray[currentPosition].rid.getPageNum());
+				rid.setSlotNum(nodeArray[currentPosition].rid.getSlotNum());
+				if (DeleteMode)
+				{
+					pageHead->numEntries--;
+					for (int j = currentPosition; j < pageHead->numEntries; j++)
+					{
+						memcpy(keyArray + j * indexHandle.ixHead->attrLength, keyArray + (j + 1)*indexHandle.ixHead->attrLength, indexHandle.ixHead->attrLength);
+						nodeArray[j] = nodeArray[j + 1];
+					}
+					indexHandle.bpm->markDirty(scanIndex);
+				}
+				else
+					currentPosition++;
+				rc = OK;
+				found = true;
+			}
+			else
+				rc = ERROR;
+			keyValue = nullptr;
+			keyArray = nullptr;
+		}
+		nodeArray = nullptr;
 	}
-	return OK;
+	return rc;
 }
 
 RC IX_IndexScan::CloseScan()                                 // Terminate index scan

@@ -1,4 +1,5 @@
-#include "RecordManager.h"
+#include "RM_Manager.h"
+#include "QL_Manager.h"
 #include "IX_Manager.h"
 #include "parser\src\SQLParser.h"
 #include "parser\src\sqlhelper.h"
@@ -8,10 +9,15 @@
 #include <string>
 using namespace std;
 void testIX();
+void testIX2();
 void testScan();
 void generateData(AttrType attrtype, char* file);
+int testParser(std::string query);
 int main()
 {
+	//generateData(DINT, "data.txt");
+	//testIX();
+	//QL_Manager* qlm;
 	// std::string query = "CREATE DATABASE ddd;";
 	// return testParser(query);
 	//generateData(STRING, "string.txt");
@@ -21,27 +27,27 @@ int main()
 	return 0;
 }
 
-int testParser(std::string query) {
-	// parse a given query
-	hsql::SQLParserResult* result = hsql::SQLParser::parseSQLString(query);
-
-	// check whether the parsing was successful
-	if (result->isValid) {
-		printf("Parsed successfully!\n");
-		printf("Number of statements: %lu\n", result->size());
-
-		for (hsql::SQLStatement* stmt : result->statements) {
-			// process the statements...
-			hsql::printStatementInfo(stmt);
-		}
-
-		return 0;
-	}
-	else {
-		printf("Invalid SQL!\n");
-		return -1;
-	}
-}
+//int testParser(std::string query) {
+//	// parse a given query
+//	hsql::SQLParserResult* result = hsql::SQLParser::parseSQLString(query);
+//
+//	// check whether the parsing was successful
+//	if (result->isValid) {
+//		printf("Parsed successfully!\n");
+//		printf("Number of statements: %lu\n", result->size());
+//
+//		for (hsql::SQLStatement* stmt : result->statements) {
+//			// process the statements...
+//			hsql::printStatementInfo(stmt);
+//		}
+//
+//		return 0;
+//	}
+//	else {
+//		printf("Invalid SQL!\n");
+//		return -1;
+//	}
+//}
 
 void testIX()
 {
@@ -50,7 +56,7 @@ void testIX()
 	BufPageManager* bpm = new BufPageManager(fm);
 	RM_Manager* rm = new RM_Manager(fm, bpm);
 	IX_Manager* im = new IX_Manager(fm, bpm);
-	rm->createFile("a.txt", 4);
+	rm->createFile("a.txt", 4, 1);
 
 	im->CreateIndex("a", 0, (AttrType)DINT, 400);
 	RM_FileHandle rmHandle;
@@ -60,17 +66,33 @@ void testIX()
 	RID rid1;
 	ifstream fin("data.txt");
 	
-	for (int i = 0; i < 2000; i++)
+	for (int i = 0; i < 200; i++)
 	{
+		//cout << i << " : \n";
 		int data;
 		fin >> data;
-		rmHandle.insertRec((char*)(&data), rid1);
+		bool* nullValue=new bool[1];
+		nullValue[0] = false;
+		rmHandle.insertRec((char*)(&data), rid1, nullValue);
 		ixHandle.InsertEntry((void*)(&data), rid1);
+		delete[]nullValue;
+		nullValue = nullptr;
 	}
 	RC rc;
 	IX_IndexScan scan;
+	int deleted = 491;
+	if (!(rc = scan.OpenScan(ixHandle, NO_OP, (void*)&deleted)))
+	{
+		RID rid;
+		RM_Record record;
+		while (scan.GetNextEntry(rid, true) == 0)
+		{
+			rmHandle.deleteRec(rid);
+		}
+	}
+	scan.CloseScan();
 	int value = 5705;
-	if (scan.OpenScan(ixHandle, LE_OP, (void*)&value) == 0)
+	if (scan.OpenScan(ixHandle, NO_OP, (void*)&value) == 0)
 	{
 		RID rid;
 		RM_Record record;
@@ -91,22 +113,76 @@ void testIX()
 
 }
 
+
+void testIX2()
+{
+	MyBitMap::initConst();
+	FileManager* fm = new FileManager();
+	BufPageManager* bpm = new BufPageManager(fm);
+	RM_Manager* rm = new RM_Manager(fm, bpm);
+	IX_Manager* im = new IX_Manager(fm, bpm);
+	rm->createFile("a.txt", 12, 1);
+
+	im->CreateIndex("a", 0, (AttrType)STRING, 400);
+	RM_FileHandle rmHandle;
+	rm->openFile("a.txt", rmHandle);
+	IX_IndexHandle ixHandle;
+	im->OpenIndex("a", 0, ixHandle);
+	RID rid1;
+	ifstream fin("string.txt");
+	RC rc;
+	IX_IndexScan scan;
+	char value[10] = "llllll";
+
+	for (int i = 0; i < 500; i++)
+	{
+		string data;
+		fin >> data;
+		bool* nullValue = new bool[1];
+		nullValue[0] = false;
+		rmHandle.insertRec(data.c_str(), rid1, nullValue);
+		ixHandle.InsertEntry((void*)(data.c_str()), rid1);
+		delete[]nullValue;
+		nullValue = nullptr;
+	}
+
+	if (scan.OpenScan(ixHandle, LE_OP, (void*)value) == 0)
+	{
+		RID rid;
+		RM_Record record;
+		while (scan.GetNextEntry(rid) == 0)
+		{
+			rmHandle.getRec(rid, record);
+			cout << (char*)(record.pData) << endl;
+		}
+		cout << "finish\n";
+	}
+	else
+	{
+		cout << "couldn't open scan\n";
+	}
+	scan.CloseScan();
+	rm->closeFile(rmHandle);
+	im->CloseIndex(ixHandle);
+
+}
+
 void testScan()
 {
 	MyBitMap::initConst();
 	FileManager* fm = new FileManager();
 	BufPageManager* bpm = new BufPageManager(fm);
 	RM_Manager* rm = new RM_Manager(fm, bpm);
-	rm->createFile("a.txt", 10);
+	rm->createFile("a.txt", 10, 1);
 	RM_FileHandle rmHandle;
 	rm->openFile("a.txt", rmHandle);
 	RID rid1;
 	ifstream fin("string.txt");
-	for (int i = 0; i < 20; i++)
+	for (int i = 0; i < 500; i++)
 	{
 		char data[10];
 		fin >> data;
-		rmHandle.insertRec(data, rid1);
+		rmHandle.insertRec(data, rid1, new bool[10]{ false });
 	}
 	RC rc;
 	RM_FileScan scan;
@@ -116,7 +192,7 @@ void testScan()
 		RM_Record record;
 		while (scan.GetNextRec(record) == 0)
 		{
-			cout << record.pData << endl;
+			cout << record.pData + rmHandle.fileHead->attrCount << endl;
 		}
 		cout << "finish\n";
 	}
@@ -125,6 +201,7 @@ void testScan()
 		cout << "couldn't open scan\n";
 	}
 	scan.CloseScan();
+
 	rm->closeFile(rmHandle);
 }
 void generateData(AttrType attrtype, char* file)

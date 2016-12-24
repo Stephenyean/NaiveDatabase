@@ -22,7 +22,7 @@ namespace hsql {
         }
 
         char* tableName;
-        Expr* expr;
+        std::vector<Expr*>* expr;
     };
 
 } // namespace hsql

@@ -151,15 +151,7 @@ protected:
 		return _findLeftOne(level - 1, offset - prevLevelCap, nPos, (prevLevelCap << BIAS));
 	}
 public:
-//	static const int BIAS;/* = 5;*/
-//	static void initConst();
-	/* {
-		for (int i = 0; i < 32; ++ i) {
-			unsigned int k = (1 << i);
-			MyBitMap::h[MyBitMap::_hash(k)] = i;
-		}
-	}
-	*/
+
 	static int _hash(uint i) {
 		return i % 61;
 	}
@@ -197,13 +189,7 @@ public:
 	}
 	int findLeftOne() {
 		int i = _findLeftOne(rootLevel, rootIndex, 0, rootBit);
-		/*
-		for (i = 0; i < size;++i){
-			if (data[i] !=0)break;
-		}*/
-		//cout << "nPosi " << i << " " << getLeafData(i) << endl;
-		//cout << i << endl;
-		//cout << data[0] << endl;
+
 		uint lb = lowbit(getLeafData(i));
 		int index = h[_hash(lb)];
 		return (i << BIAS) + index;

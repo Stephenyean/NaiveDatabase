@@ -15,6 +15,7 @@ SM_Manager::~SM_Manager()
 RC_Return SM_Manager::OpenDb(const char * dbName)
 {
 	// set working database
+	db_dir=string(dbName)+SYS_SEP;
 	if (_access(dbName, 0) == 0) // argv[2] means test for existence
 	{
 		work_database = std::string(dbName);
@@ -25,7 +26,6 @@ RC_Return SM_Manager::OpenDb(const char * dbName)
 		cout << "Database " << dbName << " is not exists.\n";
 		return OPEN_ERROR;
 	}
-	
 }
 
 RC_Return SM_Manager::CloseDb()
@@ -113,7 +113,7 @@ RC_Return SM_Manager::CreateTable(const char * relName, int attrCount, AttrInfo 
 	{
 		record_size += attributes[i].attrLength;
 	}
-	rmm->createFile((work_database + "\\" + relName).c_str(), record_size);
+	rmm->createFile((work_database + "\\" + relName).c_str(), record_size, attrCount);
 	for (size_t i = 0; i < attrCount; i++)
 	{
 		ixm->CreateIndex((work_database + "\\" + relName).c_str(), i, attributes[i].attrType, attributes[i].attrLength);
@@ -148,7 +148,7 @@ RC_Return SM_Manager::DropTable(const char * relName)
 	return OK;
 }
 
-bool SM_Manager::IsTableExists(const char * relName)
+bool SM_Manager::IsTableExists(string relName)
 {
 	return !_access((work_database + "\\" + relName + ".attr").c_str(), 0);
 }
@@ -301,3 +301,5 @@ bool SM_Manager::remove_dir(const std::string &refcstrRootDirectory, bool bDelet
 
 	return 0;
 }
+
+

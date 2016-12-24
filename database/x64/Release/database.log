@@ -1,0 +1,23 @@
+﻿  IX_Manager.cpp
+c:\users\yxc\desktop\database\final\naivedatabase\database\bufmanager\../utils/MyBitMap.h(177): warning C4146: 一元负运算符应用于无符号类型，结果仍为无符号类型
+c:\users\yxc\desktop\database\final\naivedatabase\database\bufmanager\../fileio/FileManager.h(28): warning C4996: 'open': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _open. See online help for details.
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\corecrt_io.h(514): note: 参见“open”的声明
+c:\users\yxc\desktop\database\final\naivedatabase\database\bufmanager\../fileio/FileManager.h(56): warning C4996: 'lseek': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _lseek. See online help for details.
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\corecrt_io.h(501): note: 参见“lseek”的声明
+c:\users\yxc\desktop\database\final\naivedatabase\database\bufmanager\../fileio/FileManager.h(61): warning C4996: 'write': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _write. See online help for details.
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\corecrt_io.h(556): note: 参见“write”的声明
+c:\users\yxc\desktop\database\final\naivedatabase\database\bufmanager\../fileio/FileManager.h(78): warning C4996: 'lseek': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _lseek. See online help for details.
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\corecrt_io.h(501): note: 参见“lseek”的声明
+c:\users\yxc\desktop\database\final\naivedatabase\database\bufmanager\../fileio/FileManager.h(83): warning C4996: 'read': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _read. See online help for details.
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\corecrt_io.h(521): note: 参见“read”的声明
+c:\users\yxc\desktop\database\final\naivedatabase\database\bufmanager\../fileio/FileManager.h(95): warning C4996: 'close': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _close. See online help for details.
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\corecrt_io.h(457): note: 参见“close”的声明
+IX_Manager.cpp(174): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+IX_Manager.cpp(667): warning C4312: “类型转换”: 从“int”转换到更大的“void *”
+IX_Manager.cpp(669): warning C4312: “类型转换”: 从“int”转换到更大的“void *”
+  正在生成代码
+  3 of 1605 functions ( 0.2%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    31 functions had inline decision re-evaluated but remain unchanged
+  已完成代码的生成
+  database.vcxproj -> C:\Users\yxc\Desktop\Database\final\NaiveDatabase\x64\Release\database.exe

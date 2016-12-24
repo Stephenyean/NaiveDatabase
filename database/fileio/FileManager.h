@@ -118,11 +118,13 @@ public:
 		_openFile(name, fileID);
 		return true;
 	}
+
 	int newType() {
 		int t = tm->findLeftOne();
 		tm->setBit(t, 0);
 		return t;
 	}
+
 	void closeType(int typeID) {
 		tm->setBit(typeID, 1);
 	}

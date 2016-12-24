@@ -33,7 +33,7 @@ namespace hsql {
         InsertType type;
         const char* tableName;
         std::vector<char*>* columns;
-        std::vector<Expr*>* values;
+        std::vector<std::vector<Expr*>*>* values;
         SelectStatement* select;
     };
 

@@ -19,7 +19,8 @@ namespace hsql {
         kExprPlaceholder,
         kExprColumnRef,
         kExprFunctionRef,
-        kExprOperator
+        kExprOperator,
+		kExprNull
     } ExprType;
 
 
@@ -121,7 +122,7 @@ namespace hsql {
         static Expr* makeLiteral(int64_t val);
         static Expr* makeLiteral(double val);
         static Expr* makeLiteral(char* val);
-
+		static Expr* makeLiteralNull();
         static Expr* makeColumnRef(char* name);
         static Expr* makeColumnRef(char* table, char* name);
         static Expr* makeFunctionRef(char* func_name, Expr* expr, bool distinct);

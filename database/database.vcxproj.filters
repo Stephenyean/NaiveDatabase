@@ -114,12 +114,18 @@
     <ClInclude Include="parser\src\SQLParserResult.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="QL_Manager.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="RM_Manager.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="RecordManager.cpp">
+    <ClCompile Include="RM_Manager.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="utils\MyBitMap.cpp">
@@ -155,10 +161,39 @@
     <ClCompile Include="parser\src\parser\flex_lexer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="QL_Manager.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="log.txt">
       <Filter>资源文件</Filter>
     </Text>
+    <Text Include="data.txt">
+      <Filter>资源文件</Filter>
+    </Text>
+    <Text Include="string.txt">
+      <Filter>资源文件</Filter>
+    </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="parser\src\parser\bison_parser.y">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="test_ql.sql">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="test_sm.sql">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="book.sql">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="customer.sql">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="created.sql">
+      <Filter>资源文件</Filter>
+    </None>
   </ItemGroup>
 </Project>

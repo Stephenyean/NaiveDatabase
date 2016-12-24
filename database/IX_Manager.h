@@ -4,7 +4,7 @@
 #include "fileio/FileManager.h"
 #include "utils/pagedef.h"
 #include "pf_defines.h"
-#include "RecordManager.h"
+#include "RM_Manager.h"
 #include <iostream>
 #include <limits.h>
 using namespace std;
@@ -79,7 +79,7 @@ public:
     RC OpenScan      (const IX_IndexHandle &indexHandle, // Initialize index scan
                       CompOp      compOp,
                       void        *value);           
-    RC GetNextEntry  (RID &rid);                         // Get next matching entry
+    RC GetNextEntry  (RID &rid, bool DeleteMode = false);                         // Get next matching entry
     RC CloseScan     ();                                 // Terminate index scan
 	RC SearchEntry	(int&, int&);
 	template<typename T>
@@ -93,6 +93,7 @@ public:
 	int currentPosition;
 	BufType b;
 	IX_Page_head* pageHead;
+	int scanIndex;
 };
 
 

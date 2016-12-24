@@ -88,7 +88,7 @@ namespace hsql {
         TableRef* fromTable;
         bool selectDistinct;
         std::vector<Expr*>* selectList;
-        Expr* whereClause;
+        std::vector<Expr*>* whereClause;
         GroupByDescription* groupBy;
 
         SelectStatement* unionSelect;

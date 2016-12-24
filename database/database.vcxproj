@@ -137,6 +137,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -173,6 +174,8 @@
     <ClInclude Include="parser\src\sql\Table.h" />
     <ClInclude Include="parser\src\sql\UpdateStatement.h" />
     <ClInclude Include="pf_defines.h" />
+    <ClInclude Include="QL_Manager.h" />
+    <ClInclude Include="RM_Manager.h" />
     <ClInclude Include="SM_Manager.h" />
     <ClInclude Include="utils\compare.h" />
     <ClInclude Include="utils\MyBitMap.h" />
@@ -191,12 +194,23 @@
     <ClCompile Include="parser\src\SQLParserResult.cpp" />
     <ClCompile Include="parser\src\sql\destruct.cpp" />
     <ClCompile Include="parser\src\sql\Expr.cpp" />
-    <ClCompile Include="RecordManager.cpp" />
+    <ClCompile Include="QL_Manager.cpp" />
+    <ClCompile Include="RM_Manager.cpp" />
     <ClCompile Include="SM_Manager.cpp" />
     <ClCompile Include="utils\MyBitMap.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="data.txt" />
     <Text Include="log.txt" />
+    <Text Include="string.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="book.sql" />
+    <None Include="created.sql" />
+    <None Include="customer.sql" />
+    <None Include="parser\src\parser\bison_parser.y" />
+    <None Include="test_ql.sql" />
+    <None Include="test_sm.sql" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

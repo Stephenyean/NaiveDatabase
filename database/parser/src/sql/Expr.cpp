@@ -14,8 +14,6 @@ namespace hsql {
     }
 
 
-
-
     Expr* Expr::makeOpUnary(OperatorType op, Expr* expr) {
         Expr* e = new Expr(kExprOperator);
         e->op_type = op;
@@ -64,7 +62,12 @@ namespace hsql {
         return e;
     }
 
+	Expr* Expr::makeLiteralNull() {
+		Expr* e = new Expr(kExprNull);
+		return e;
+	}
 
+	
     Expr* Expr::makeColumnRef(char* name) {
         Expr* e = new Expr(kExprColumnRef);
         e->name = name;

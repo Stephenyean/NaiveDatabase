@@ -1,4 +1,4 @@
-#include "RecordManager.h"
+#include "RM_Manager.h"
 #include <cstring>
 RM_Manager::RM_Manager(FileManager* fm, BufPageManager* bpm)
 {
