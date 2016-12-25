@@ -1,6 +1,7 @@
+DROP DATABASE orderDB;
 CREATE DATABASE orderDB;
 
-USE DATABASE orderDB;
+USE orderDB;
 
 CREATE TABLE publisher (
   id int(10) NOT NULL,

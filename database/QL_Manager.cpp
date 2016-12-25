@@ -1,4 +1,6 @@
 #include "QL_Manager.h"
+#include <regex>
+#include <algorithm>
 
 QL_Manager::QL_Manager(SM_Manager* smm, IX_Manager* ixm, RM_Manager* rmm)
 {
@@ -237,6 +239,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 	bool foundCondition = false;
 	int iCondition = -1;
 
+	//no condition
 	if (nConditions == 0)
 	{
 		nConditions = 1;
@@ -249,6 +252,8 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 		condition.rhsValue.data = (void*)(new int[1]);
 		conditions.push_back(condition);
 	}
+
+	//find best condition to scan
 	if (!foundCondition)
 	{
 		for (int i = 0; i < nConditions; i++)
@@ -298,11 +303,12 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 		foundCondition = true;
 	}
 
+	//single table
 	if (nRelations == 1)
 	{
 		if (conditions[iCondition].bRhsIsAttr != 0)
 		{
-			// need to modify
+			// TODO : need to modify
 			return ERROR;
 		}
 
@@ -337,6 +343,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			return QL_INCORRECT_ATTR_TYPE;
 		}
 		
+		// open scan
 		IX_IndexScan scan;
 		char* data = new char[conditionAttrLength];
 		int copyLength = 4;
@@ -349,6 +356,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			return rc;
 		}
 
+		// judge other condition satisified
 		RID rid;
 		RM_Record record;
 		while (!(rc = scan.GetNextEntry(rid)))
@@ -437,9 +445,10 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 
 			}
 
+			// satisfied then print
 			if (satisfied)
 			{
-				// need to be modified
+				// TODO : need to be modified
 				bool * nullValue = (bool*)record.pData;
 				int attrOffset = 0;
 				for (int i = 0; i < attrCount[nRelate]; i++)
@@ -483,6 +492,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			}
 		}
 	}
+	// multiple table
 	else if (nRelations == 2)
 	{
 
@@ -680,6 +690,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 		rmm->closeFile(rmFileHandle[i]);
 	}
 
+	// clear workspace
 	delete[]rmFileHandle;
 	rmFileHandle = nullptr;
 	ixm->CloseIndex(ixIndexHandle);
@@ -717,11 +728,59 @@ bool QL_Manager::satisfiesCondition(T key, T value, CompOp compOp) {
 	return match;
 }
 
-
+//1.search index find next rid
+//2.delete lastone in ixm
+//3.
 RC QL_Manager::Delete(const char *relName,            // relation to delete from
-	int        nConditions,         // # conditions in Where clause
-	const Condition conditions[])  // conditions in Where clause
+	 std::vector<Condition> & conditions)  // conditions in Where clause
 {
+	// get all attrInfos, judge attrExists
+	int attrCount;
+	AttrInfo * attributes = NULL;
+	if (!CheckAndPreprocess(relName, conditions, attrCount, attributes))
+		return ERROR;
+
+	// choose correct condition
+	RC rc;
+	IX_IndexHandle ixIndexHandle;
+	int iCondition = findBestCondition(conditions);
+	int iIndex = findCorAttr(attrCount, attributes, conditions[iCondition]);
+	string indexFileName = "./" + smm->getWork_Database() + "/" + relName;
+	if (rc = ixm->OpenIndex(indexFileName.c_str(), iIndex, ixIndexHandle))
+	{
+		cout << "Error to open Index " << iIndex << endl;
+		return ERROR;
+	}
+	int conditionAttrLength = attributes[iIndex].attrLength;
+
+	// open rmfileHandle
+	RM_FileHandle rmFileHandle;
+	string fileName = "./" + smm->getWork_Database() + "/" + relName;
+	rmm->openFile(fileName.c_str(), rmFileHandle);
+
+	// open idx scan
+	IX_IndexScan ixScan;
+	char* data = new char[conditionAttrLength];
+	int copyLength = 4;
+	if (conditions[iCondition].rhsValue.type == STRING || conditions[iCondition].rhsValue.type == VARCHAR)
+		copyLength = strlen((char*)conditions[iCondition].rhsValue.data)+1;
+	memcpy((void*)data, (void*)conditions[iCondition].rhsValue.data, copyLength);
+	if (rc = ixScan.OpenScan(ixIndexHandle, conditions[iCondition].op, data))
+	{
+		cout << "Error to Open scan\n" << endl;
+		return rc;
+	}
+
+	// open deletemode
+	RID rid;
+	RM_Record record;
+	while (!(rc = ixScan.GetNextEntry(rid)))
+	{
+		isSatisifyConditions(attrCount, attributes, rmFileHandle, ixScan, rid, record, conditions, 1);
+	}
+
+	// then delete in rm
+
 	return OK;
 }
 
@@ -731,8 +790,238 @@ RC QL_Manager::Update(const char *relName,            // relation to update
 	const int bIsValue,             // 0/1 if RHS of = is attribute/value
 	const RelAttr &rhsRelAttr,      // attr on RHS of =
 	const Value &rhsValue,          // value on RHS of =
-	int   nConditions,              // # conditions in Where clause
-	const Condition conditions[])  // conditions in Where clause
+	 std::vector<Condition> & conditions)  // conditions in Where clause
 {
 	return OK;
+}
+
+bool QL_Manager::CheckAndPreprocess(const char * relName, std::vector<Condition>& conditions, int & attrCount, AttrInfo *& attributes)
+{
+	// judge if database is open
+	if (smm->getWork_Database().size() <= 0)
+	{
+		cout << "Database is not open\n";
+		return false;
+	}
+
+	// judge if tables exist
+	if (!smm->IsTableExists(relName))
+	{
+		cout << "table not exist" << endl;
+		return false;
+	}
+
+	RC rc;
+
+	// get attr info for relations
+	if ((rc = smm->GetTableAttrInfo(smm->getWork_Database().c_str(), relName, attrCount, attributes)))
+	{
+		cout << "Error to get Table Attr Info\n";
+		return false;
+	}
+
+	return true;
+}
+
+int QL_Manager::findBestCondition(std::vector<Condition> & conditions)
+{
+	int nConditions = conditions.size();
+	bool foundCondition = false;
+	int iCondition = -1;
+
+	//no condition
+	if (nConditions == 0)
+	{
+		nConditions = 1;
+		Condition condition;
+		condition.bRhsIsAttr = 0;
+		condition.op = NO_OP;
+		/*WARNING : not contain condition.lhsAttr*/
+		condition.rhsValue = Value();
+		condition.rhsValue.type = DINT;
+		condition.rhsValue.data = (void*)(new int[1]);
+		conditions.push_back(condition);
+	}
+
+	//find best condition to scan
+	if (!foundCondition)
+	{
+		for (int i = 0; i < nConditions; i++)
+		{
+			if (conditions[i].op == EQ_OP)
+			{
+				iCondition = i;
+				foundCondition = true;
+				break;
+			}
+		}
+	}
+
+	if (!foundCondition)
+	{
+		for (int i = 0; i < nConditions; i++)
+		{
+			switch (conditions[i].op)
+			{
+			case GE_OP:
+			case LE_OP:
+			case GT_OP:
+			case LT_OP:
+				iCondition = i;
+				foundCondition = true;
+				break;
+			}
+		}
+	}
+
+	if (!foundCondition)
+	{
+		for (int i = 0; i < nConditions; i++)
+		{
+			if (conditions[i].op == NOTNULL_OP || conditions[i].op == NE_OP)
+			{
+				iCondition = i;
+				foundCondition = true;
+				break;
+			}
+		}
+	}
+
+	if (!foundCondition)
+	{
+		iCondition = 0;
+		foundCondition = true;
+	}
+	return iCondition;
+}
+
+bool QL_Manager::isSatisifyConditions(int attrCount, AttrInfo * attributes, RM_FileHandle & rmFileHandle, IX_IndexScan & scan, const RID & rid, RM_Record &record, std::vector<Condition> & conditions, int deletemode)
+{
+	int nConditions = conditions.size();
+	// find rid in rmm, put it in the record
+	RC rc;
+	if (rc = rmFileHandle.getRec(rid, record))
+	{
+		cout << "Error to get Record\n";
+		return false;
+	}
+	
+	// check all conditions
+	bool satisfied = true;
+	for (int j = 0; j < nConditions; j++)
+	{
+		// find attr position
+		int nAttr = 0;
+		for (int k = 0; k < attrCount; k++)
+		{
+			if (string(conditions[j].lhsAttr.attrName) == string(attributes[k].attrName))
+			{
+				nAttr = k;
+				break;
+			}
+		}
+		if (conditions[j].op == ISNULL_OP)
+		{
+			bool* nullValues = (bool*)record.pData;
+			if (!nullValues[nAttr])
+			{
+				satisfied = false;
+				break;
+			}
+			nullValues = nullptr;
+		}
+		else if (conditions[j].op == NOTNULL_OP)
+		{
+			bool* nullValues = (bool*)record.pData;
+			if (nullValues[nAttr])
+			{
+				satisfied = false;
+				break;
+			}
+			nullValues = nullptr;
+		}
+		else
+		{
+			if (attributes[nAttr].attrType == AttrType::DINT)
+			{
+				int attrOffset = 0;
+				for (int i = 0; i < nAttr; i++)
+				{
+					attrOffset += attributes[i].attrLength;
+				}
+				int recordValue = *(int*)(record.pData + attrCount + attrOffset);
+				int givenValue = *((int*)(conditions[j].rhsValue.data));
+				if (!satisfiesCondition(recordValue, givenValue, conditions[j].op))
+				{
+					satisfied = false;
+					break;
+				}
+			}
+			else if (attributes[nAttr].attrType == AttrType::STRING)
+			{
+				int attrOffset = 0;
+				for (int i = 0; i < nAttr; i++)
+				{
+					attrOffset += attributes[i].attrLength;
+				}
+				string recordValue = string(record.pData + attrCount + attrOffset);
+				string givenValue = string((char*)(conditions[j].rhsValue.data));
+				if (conditions[j].op == CompOp::LIKE_OP)
+				{
+					// replace other regex identifier
+					vector<string> regexIds = { "\\", "(", ")", "?", ":", "[", "]", "*", "+","^", "$", "|" };
+					for (string regexId : regexIds)
+					{
+						ReplaceAll(givenValue, regexId, "\\" + regexId);
+					}
+					// translate sql to regex
+					ReplaceAll(givenValue, "_", "(.)");
+					ReplaceAll(givenValue, "%", "(.)*");
+					// find match
+					satisfied = regex_match(recordValue, regex(givenValue));
+				}
+				else if (!satisfiesCondition(recordValue, givenValue, conditions[j].op))
+				{
+					satisfied = false;
+					break;
+				}
+			}
+		}
+	}
+
+	// if deletemode delete it in the rmm and ixm, WARNING NOT IN rmm ?
+	if (deletemode && satisfied)
+	{
+		scan.DeleteCurrentEntry();
+		rmFileHandle.deleteRec(rid);
+	}
+	return satisfied;
+}
+
+int QL_Manager::findCorAttr(int attrCount, const AttrInfo * attributes, const Condition & condition)
+{
+	bool found = false;
+	int corAddr = 0;
+	for (; corAddr < attrCount; corAddr++)
+	{
+		if (string(condition.lhsAttr.attrName) == string(attributes[corAddr].attrName))
+		{
+			found = true;
+			break;
+		}
+	}
+	if (found)
+		return corAddr;
+	else
+		return -1;
+}
+
+std::string QL_Manager::ReplaceAll(std::string str, const std::string & from, const std::string & to)
+{
+	size_t start_pos = 0;
+	while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
+		str.replace(start_pos, from.length(), to);
+		start_pos += to.length(); // Handles case where 'to' is a substring of 'from'
+	}
+	return str;
 }

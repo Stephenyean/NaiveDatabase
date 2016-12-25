@@ -36,29 +36,29 @@ struct IX_Node {
 class IX_IndexHandle;
 class IX_Manager{
 public:
-    IX_Manager  (FileManager* fm, BufPageManager* bpm);
-    ~IX_Manager ();
+	IX_Manager  (FileManager* fm, BufPageManager* bpm);
+	~IX_Manager ();
 
-    RC CreateIndex  (const char* fileName, int indexNo, AttrType attrType, int attrLength);
-    RC DestroyIndex (const char* fileName, int indexNo);
-    RC OpenIndex    (const char* fileName, int indexNo, IX_IndexHandle &indexHandle);
-    RC CloseIndex   (IX_IndexHandle &indexHandle);
+	RC CreateIndex  (const char* fileName, int indexNo, AttrType attrType, int attrLength);
+	RC DestroyIndex (const char* fileName, int indexNo);
+	RC OpenIndex    (const char* fileName, int indexNo, IX_IndexHandle &indexHandle);
+	RC CloseIndex   (IX_IndexHandle &indexHandle);
 	int computeDegree(int attrLength);
 	FileManager* fm;
-    BufPageManager* bpm;
+	BufPageManager* bpm;
 	int verbose = 2;
 };
 
 
 class IX_IndexHandle {
 public:
-    IX_IndexHandle  ();                             // Constructor
-    ~IX_IndexHandle ();                             // Destructor
-    RC InsertEntry  (void *pData, const RID &rid);  // Insert new index entry
-    RC DeleteEntry  (void *pData, const RID &rid);  // Delete index entry
+	IX_IndexHandle  ();                             // Constructor
+	~IX_IndexHandle ();                             // Destructor
+	RC InsertEntry  (void *pData, const RID &rid);  // Insert new index entry
+	RC DeleteEntry  (void *pData, const RID &rid);  // Delete index entry
 	RC forcePages(PageNum pageNum);				// Write dirty page(s)
-    RC RecursiveSplitNode (int pageNum, int newPageNum, void* pData, int& parent);
-    RC RecursiveInsertEntry (int pageNum, void *pData, const RID &rid);
+	RC RecursiveSplitNode (int pageNum, int newPageNum, void* pData, int& parent);
+	RC RecursiveInsertEntry (int pageNum, void *pData, const RID &rid);
 	RC getPosition(void* pData, int& position, BufType b);
 	RC getMiddleData(void* pData, BufType b, int position, void* p);
 	RC initIxPage(char* b);
@@ -74,13 +74,14 @@ public:
 
 class IX_IndexScan {
 public:
-    IX_IndexScan  ();                                 // Constructor
-    ~IX_IndexScan ();                                 // Destructor
-    RC OpenScan      (const IX_IndexHandle &indexHandle, // Initialize index scan
-                      CompOp      compOp,
-                      void        *value);           
-    RC GetNextEntry  (RID &rid, bool DeleteMode = false);                         // Get next matching entry
-    RC CloseScan     ();                                 // Terminate index scan
+	IX_IndexScan  ();                                 // Constructor
+	~IX_IndexScan ();                                 // Destructor
+	RC OpenScan      (const IX_IndexHandle &indexHandle, // Initialize index scan
+					  CompOp      compOp,
+					  void        *value);           
+	RC GetNextEntry  (RID &rid, bool DeleteMode = false);                         // Get next matching entry
+	RC DeleteCurrentEntry();
+	RC CloseScan     ();                                 // Terminate index scan
 	RC SearchEntry	(int&, int&);
 	template<typename T>
 	bool satisfiesCondition(T key, T value);

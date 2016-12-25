@@ -1059,6 +1059,37 @@ RC IX_IndexScan::GetNextEntry(RID &rid, bool DeleteMode)                        
 	return rc;
 }
 
+RC IX_IndexScan::DeleteCurrentEntry()
+{
+	currentPosition -= 1;
+	IX_Node* nodeArray = (IX_Node*)((char*)b + sizeof(IX_Page_head) + attrLength* indexHandle.ixHead->degree);
+	if (attrtype == DINT)
+	{
+		int keyValue = *(int*)value;
+		int* keyArray = (int*)((char*)b + sizeof(IX_Page_head));
+		pageHead->numEntries--;
+		for (int j = currentPosition; j < pageHead->numEntries; j++)
+		{
+			keyArray[j] = keyArray[j + 1];
+			nodeArray[j] = nodeArray[j + 1];
+		}
+		indexHandle.bpm->markDirty(scanIndex);
+	}
+	else if (attrtype == STRING || attrtype == VARCHAR)
+	{
+		int keyValue = *(int*)value;
+		int* keyArray = (int*)((char*)b + sizeof(IX_Page_head));
+		pageHead->numEntries--;
+		for (int j = currentPosition; j < pageHead->numEntries; j++)
+		{
+			memcpy(keyArray + j * indexHandle.ixHead->attrLength, keyArray + (j + 1)*indexHandle.ixHead->attrLength, indexHandle.ixHead->attrLength);
+			nodeArray[j] = nodeArray[j + 1];
+		}
+		indexHandle.bpm->markDirty(scanIndex);
+	}
+	return RC();
+}
+
 RC IX_IndexScan::CloseScan()                                 // Terminate index scan
 {
 	return OK;

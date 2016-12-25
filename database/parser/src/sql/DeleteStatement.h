@@ -14,15 +14,15 @@ namespace hsql {
         DeleteStatement() :
             SQLStatement(kStmtDelete),
             tableName(NULL),
-            expr(NULL) {};
+            whereClause(NULL) {};
 
         virtual ~DeleteStatement() {
             delete tableName;
-            delete expr;
+            delete whereClause;
         }
 
         char* tableName;
-        std::vector<Expr*>* expr;
+        std::vector<Expr*>* whereClause;
     };
 
 } // namespace hsql

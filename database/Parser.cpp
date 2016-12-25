@@ -185,6 +185,8 @@ void Parser::processCreate(hsql::CreateStatement *stmt)
 {
 	AttrInfo *attributes = new AttrInfo[stmt->columns->size()];
 	int i = 0;
+	int primaryKeyIx = -1;
+	bool primaryKeyValid = stmt->primaryKey == NULL;
 	for (ColumnDefinition *column : *(stmt->columns))
 	{
 		attributes[i].attrName = column->name;
@@ -202,9 +204,20 @@ void Parser::processCreate(hsql::CreateStatement *stmt)
 			break;
 		}
 		attributes[i].notnull = column->notnull;
+		if (!primaryKeyValid && strcmp(attributes[i].attrName, stmt->primaryKey) == 0)
+		{
+			primaryKeyIx = i;
+			primaryKeyValid = true;
+		}
 		i += 1;
 	}
-	smm->CreateTable(stmt->tableName, stmt->columns->size(), attributes);
+	if (!primaryKeyValid)
+	{
+		cout << "Primary key is not valid." << endl;
+		delete[] attributes;
+		return;
+	}
+	smm->CreateTable(stmt->tableName, stmt->columns->size(), attributes, primaryKeyIx);
 	delete[] attributes;
 }
 
@@ -221,26 +234,26 @@ void Parser::processInsert(hsql::InsertStatement *stmt){
 		for(int j=0; j<stmt->values->operator[](i)->size(); j++){
 			auto localValue = stmt->values->operator[](i)->operator[](j);
 			switch(localValue->type){
-  				case(kExprLiteralInt):{
+				case(kExprLiteralInt):{
 					Value value;
-  					value.type = DINT;
+					value.type = DINT;
 					value.data = (void*)(new int(localValue->ival));//(void*)&localValue->ival;
 					myValues.push_back(value);
-  					break;
-  				}
-  				case(kExprLiteralString):{
+					break;
+				}
+				case(kExprLiteralString):{
 					Value value;
-  					value.type = STRING;
+					value.type = STRING;
 					value.data = (void*)new char[strlen(localValue->name) + 1];// localValue->name;
 					memcpy(value.data, localValue->name, strlen(localValue->name) + 1);
 					myValues.push_back(value);
 					break;
-  				}
-  				default:
-  					break;
-  			}
+				}
+				default:
+					break;
+			}
 		}
-  		switch(stmt->type){
+		switch(stmt->type){
 			case(InsertStatement::kInsertValues):{
 				qlm->Insert(stmt->tableName, myValues.size(), myValues);
 				break;
@@ -250,55 +263,16 @@ void Parser::processInsert(hsql::InsertStatement *stmt){
 			default:
 				break;
 		}
-  	}
+	}
 }
 
 
 void Parser::processDelete(hsql::DeleteStatement *stmt){
 
-	//vector<Condition> conditions;
-	//int nCondition;
-
-	//for(int i=0; i<stmt->expr->size(); i++){
-	//	Condition tempCondition;
-	//	tempCondition
-	//	myCondition[i].lhsAttr = stmt->expr[i]->expr->name;
-	//	myCondition[i].op = NO_OP;		//default no comparison(when value is a null pointer)
-	//	switch(stmt->expr->op_type){
-	//		case(NOT_EQUALS):{
-	//			myCondition[i].op = NE_OP;
-	//			break;
-	//		}
-	//		case(LESS_EQ):{
-	//			myCondition[i].op = LE_OP;
-	//			break;
-	//		}
-	//		case(GREATER_EQ):{
-	//			myCondition[i].op = GE_OP;
-	//			break;
-	//		}
-	//		default:
-	//			break;
-	//	}
-	//	switch(stmt->expr->op_char){
-	//		case('='):{
-	//			myCondition[i].op = EQ_OP;
-	//			break;
-	//		}
-	//		case('<'):{
-	//			myCondition[i].op = LT_OP;
-	//			break;
-	//		}
-	//		case('>'):{
-	//			myCondition[i].op = GT_OP;
-	//			break;
-	//		}
-	//	}
-	//	myCondition[i].bRhsIsAttr = FALSE;
- // 		myCondition[i].rhsAttr = NULL;
- // 		myCondition[i].rhsValue = stmt->expr->expr2->fval;
- // 	}
-	//qlm->Delete(stmt->tableName, stmt->expr->size(), myCondition);
+	vector<Condition> conditions;
+	const char * relName = stmt->tableName;
+	packConditions(relName, stmt->whereClause, conditions);
+	qlm->Delete(relName, conditions);
 	
 }
 
@@ -307,19 +281,19 @@ void Parser::processUpdate(hsql::UpdateStatement* stmt){
 	Condition myCondition[10000];
 	for(int i=0; i<stmt->where->size(); i++){
 		//condition
-		myCondition[i].lhsAttr = stmt->updates[i]->column;
-		myCondition[i].op = NO_OP;		//default no comparison(when value is a null pointer)
+		tempCondition.lhsAttr = stmt->updates[i]->column;
+		tempCondition.op = NO_OP;		//default no comparison(when value is a null pointer)
 		switch(stmt->updates[i]->value->op_type){
 			case(NOT_EQUALS):{
-				myCondition[i].op = NE_OP;
+				tempCondition.op = NE_OP;
 				break;
 			}
 			case(LESS_EQ):{
-				myCondition[i].op = LE_OP;
+				tempCondition.op = LE_OP;
 				break;
 			}
 			case(GREATER_EQ):{
-				myCondition[i].op = GE_OP;
+				tempCondition.op = GE_OP;
 				break;
 			}
 			default:
@@ -327,53 +301,53 @@ void Parser::processUpdate(hsql::UpdateStatement* stmt){
 		}
 		switch(stmt->updates[i]->value->op_char){
 			case('='):{
-				myCondition[i].op = EQ_OP;
+				tempCondition.op = EQ_OP;
 				break;
 			}
 			case('<'):{
-				myCondition[i].op = LT_OP;
+				tempCondition.op = LT_OP;
 				break;
 			}
 			case('>'):{
-				myCondition[i].op = GT_OP;
+				tempCondition.op = GT_OP;
 				break;
 			}
 		}
-		myCondition[i].bRhsIsAttr = FALSE;
-  		myCondition[i].rhsAttr = NULL;
-  		myCondition[i].rhsValue = stmt->updates[i]->value->expr2->fval;
-  		//updAttr
-  		
+		tempCondition.bRhsIsAttr = FALSE;
+		tempCondition.rhsAttr = NULL;
+		tempCondition.rhsValue = stmt->updates[i]->value->expr2->fval;
+		//updAttr
+		
 	}
 	for(int i=0; i<stmt->updates->size(); i++){
 		RelAttr myUpdAttr;
-  		myUpdAttr.relName = stmt->table;
-  		myUpdAttr.attrName = stmt->updates[i]->column;
-  		//rhsRelAttr
-  		RelAttr myRhsRelAttr;
-  		myRhsRelAttr.relName = stmt->table;
-  		myRhsRelAttr.attrName = stmt->updates[i]->column;
-  		//rhsValue
-  		Value myRhsValue;
-  		switch(stmt->updates[i]->value->type){
-  			case(kExprLiteralInt):{
-  				myRhsValue.type = DINT;
-  				myRhsValue.data = stmt->updates[i]->value->val;
-  				break;
-  			}
-  			case(kExprLiteralFloat):{
-  				myRhsValue.type = DFLOAT;
-  				myRhsValue.data = stmt->updates[i]->value->value;
-  				break;
-  			}
-  			case(kExprLiteralString):{
-  				myRhsValue.type = STRING;
-  				myRhsValue.data = stmt->updates[i]->value->value;
-  				break;
-  			}
-  			default:
-  				break;
-  		}
+		myUpdAttr.relName = stmt->table;
+		myUpdAttr.attrName = stmt->updates[i]->column;
+		//rhsRelAttr
+		RelAttr myRhsRelAttr;
+		myRhsRelAttr.relName = stmt->table;
+		myRhsRelAttr.attrName = stmt->updates[i]->column;
+		//rhsValue
+		Value myRhsValue;
+		switch(stmt->updates[i]->value->type){
+			case(kExprLiteralInt):{
+				myRhsValue.type = DINT;
+				myRhsValue.data = stmt->updates[i]->value->val;
+				break;
+			}
+			case(kExprLiteralFloat):{
+				myRhsValue.type = DFLOAT;
+				myRhsValue.data = stmt->updates[i]->value->value;
+				break;
+			}
+			case(kExprLiteralString):{
+				myRhsValue.type = STRING;
+				myRhsValue.data = stmt->updates[i]->value->value;
+				break;
+			}
+			default:
+				break;
+		}
 		qlm->Update(stmt->table, myUpdAttr, 1, myRhsRelAttr, myRhsValue, 1,myCondition);
 	}
 	*/
@@ -426,71 +400,7 @@ void Parser::processSelect(hsql::SelectStatement* stmt){
 	}
 	if (stmt->whereClause)
 	{
-		for (int i = 0; i < stmt->whereClause->size(); i++)
-		{
-			auto localValue = (*(stmt->whereClause))[i];
-			Condition localCondition;
-			if (localValue->expr->hasTable())
-			{
-				localCondition.lhsAttr = RelAttr(localValue->expr->table, localValue->expr->getName());
-			}
-			else
-				localCondition.lhsAttr = RelAttr(relName, localValue->expr->getName());
-			localCondition.op = CompOp::NO_OP;
-			switch (localValue->op_type)
-			{
-			case(hsql::Expr::OperatorType::NOT_EQUALS):
-				localCondition.op = CompOp::NE_OP;
-				break;
-			case(hsql::Expr::OperatorType::SIMPLE_OP):
-				if (localValue->op_char == '=')
-					localCondition.op = CompOp::EQ_OP;
-				else if (localValue->op_char == '>')
-					localCondition.op = CompOp::GT_OP;
-				else if (localValue->op_char == '<')
-					localCondition.op = CompOp::LT_OP;
-				else if (localValue->op_char == 'y')
-					localCondition.op = CompOp::ISNULL_OP;
-				else if (localValue->op_char == 'n')
-					localCondition.op = CompOp::NOTNULL_OP;
-				break;
-			case(hsql::Expr::OperatorType::LESS_EQ):
-				localCondition.op = CompOp::LE_OP;
-				break;
-			case(hsql::Expr::OperatorType::GREATER_EQ):
-				localCondition.op = CompOp::GE_OP;
-				break;
-			}
-
-			if (localValue->expr2->isLiteral())
-			{
-				localCondition.bRhsIsAttr = 0;
-				Value tempValue;
-				if (localValue->expr2->type == ExprType::kExprLiteralInt)
-				{
-					tempValue.data = (void*)&localValue->expr2->ival;
-					tempValue.type = AttrType::DINT;
-				}
-				else if (localValue->expr2->type == ExprType::kExprLiteralString)
-				{
-					tempValue.data = (void*)localValue->expr2->getName();
-					tempValue.type = AttrType::STRING;
-				}
-				localCondition.rhsValue = tempValue;
-			}
-			else
-			{
-				localCondition.bRhsIsAttr = 1;
-				if (localValue->expr2->hasTable())
-				{
-					localCondition.lhsAttr = RelAttr(string(localValue->expr2->table), string(localValue->expr2->getName()));
-				}
-				else
-					localCondition.lhsAttr = RelAttr(relName, string(localValue->expr2->getName()));
-			}
-
-			conditions.push_back(localCondition);
-		}
+		packConditions(relName.c_str(), stmt->whereClause, conditions);
 	}
 
 	if (stmt->fromTable->list)
@@ -503,4 +413,77 @@ void Parser::processSelect(hsql::SelectStatement* stmt){
 	nConditions = conditions.size();
 	qlm->Select(nSelAttrs, mySelAttrs, nRelations, relations, nConditions, conditions);
 }
+
+void Parser::packConditions(const char * relName, std::vector<hsql::Expr*>* whereClause, std::vector<Condition> & conditions)
+{
+	for (int i = 0; i < whereClause->size(); i++)
+	{
+		auto localValue = (*whereClause)[i];
+		Condition localCondition;
+		if (localValue->expr->hasTable())
+		{
+			localCondition.lhsAttr = RelAttr(localValue->expr->table, localValue->expr->getName());
+		}
+		else
+			localCondition.lhsAttr = RelAttr(relName, localValue->expr->getName());
+		localCondition.op = CompOp::NO_OP;
+		switch (localValue->op_type)
+		{
+		case(hsql::Expr::OperatorType::NOT_EQUALS):
+			localCondition.op = CompOp::NE_OP;
+			break;
+		case(hsql::Expr::OperatorType::SIMPLE_OP):
+			if (localValue->op_char == '=')
+				localCondition.op = CompOp::EQ_OP;
+			else if (localValue->op_char == '>')
+				localCondition.op = CompOp::GT_OP;
+			else if (localValue->op_char == '<')
+				localCondition.op = CompOp::LT_OP;
+			else if (localValue->op_char == 'y')
+				localCondition.op = CompOp::ISNULL_OP;
+			else if (localValue->op_char == 'n')
+				localCondition.op = CompOp::NOTNULL_OP;
+			break;
+		case(hsql::Expr::OperatorType::LESS_EQ):
+			localCondition.op = CompOp::LE_OP;
+			break;
+		case(hsql::Expr::OperatorType::GREATER_EQ):
+			localCondition.op = CompOp::GE_OP;
+		case(hsql::Expr::OperatorType::LIKE):
+			localCondition.op = CompOp::LIKE_OP;
+			break;
+		}
+
+		if (localValue->expr2->isLiteral())
+		{
+			localCondition.bRhsIsAttr = 0;
+			Value tempValue;
+			if (localValue->expr2->type == ExprType::kExprLiteralInt)
+			{
+				tempValue.data = (void*)&localValue->expr2->ival;
+				tempValue.type = AttrType::DINT;
+			}
+			else if (localValue->expr2->type == ExprType::kExprLiteralString)
+			{
+				tempValue.data = (void*)localValue->expr2->getName();
+				tempValue.type = AttrType::STRING;
+			}
+			localCondition.rhsValue = tempValue;
+		}
+		else
+		{
+			localCondition.bRhsIsAttr = 1;
+			if (localValue->expr2->hasTable())
+			{
+				localCondition.lhsAttr = RelAttr(string(localValue->expr2->table), string(localValue->expr2->getName()));
+			}
+			else
+				localCondition.lhsAttr = RelAttr(relName, string(localValue->expr2->getName()));
+		}
+
+		conditions.push_back(localCondition);
+	}
+}
+
+
 

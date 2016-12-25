@@ -46,11 +46,12 @@ public:
 	RC_Return DropDb(const char* dbName);
 	RC_Return CreateTable(const char *relName,                // Create relation
 		int        attrCount,
-		AttrInfo   *attributes);
+		AttrInfo   *attributes, int primayKeyIx);
 	RC_Return DropTable(const char *relName);               // Destroy relation
 	bool IsTableExists(string relName);
 	RC_Return GetTableAttrInfo(const char*dbName, const char *relName, int &attrCount, AttrInfo *&attributes);
-	RC_Return SaveTableAttrInfo(const char*dbName, const char *relName, int attrCount, AttrInfo *attributes);
+	RC_Return GetTableAttrInfo(const char*dbName, const char *relName, int &attrCount, AttrInfo *&attributes, int & primaryKeyIx);
+	RC_Return SaveTableAttrInfo(const char*dbName, const char *relName, int attrCount, AttrInfo *attributes, int primaryKeyIx);
 	RC_Return DropTableAttrInfo(const char*dbName, const char *relName);
 	std::vector<std::string> GetTables(const char *dbName);
 	std::string getWork_Database() { return work_database; }

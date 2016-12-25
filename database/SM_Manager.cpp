@@ -84,7 +84,7 @@ RC_Return SM_Manager::DropDb(const char * dbName)
 	
 }
 
-RC_Return SM_Manager::CreateTable(const char * relName, int attrCount, AttrInfo * attributes)
+RC_Return SM_Manager::CreateTable(const char * relName, int attrCount, AttrInfo * attributes, int primaryKeyIx)
 {
 	// touch table attrInfo
 	// create index for all
@@ -118,7 +118,7 @@ RC_Return SM_Manager::CreateTable(const char * relName, int attrCount, AttrInfo 
 	{
 		ixm->CreateIndex((work_database + "\\" + relName).c_str(), i, attributes[i].attrType, attributes[i].attrLength);
 	}
-	SaveTableAttrInfo(NULL, relName, attrCount, attributes);
+	SaveTableAttrInfo(NULL, relName, attrCount, attributes, primaryKeyIx);
 	return OK;
 }
 
@@ -135,9 +135,9 @@ RC_Return SM_Manager::DropTable(const char * relName)
 		cout << "Table " << relName << " is not exists.\n";
 		return DROP_ERROR;
 	}
-	int attrCount = 0;
+	int attrCount = 0, primaryKeyIx = 0;
 	AttrInfo *attributes = NULL;
-	GetTableAttrInfo(NULL, relName, attrCount, attributes);
+	GetTableAttrInfo(NULL, relName, attrCount, attributes, primaryKeyIx);
 	for (size_t i = 0; i < attrCount; i++)
 	{
 		ixm->DestroyIndex((work_database + "\\" + relName).c_str(), i);
@@ -153,8 +153,9 @@ bool SM_Manager::IsTableExists(string relName)
 	return !_access((work_database + "\\" + relName + ".attr").c_str(), 0);
 }
 
-RC_Return SM_Manager::GetTableAttrInfo(const char*dbName, const char * relName, int & attrCount, AttrInfo *& attributes)
+RC_Return SM_Manager::GetTableAttrInfo(const char * dbName, const char * relName, int & attrCount, AttrInfo *& attributes)
 {
+	int primaryKeyIx;
 	if (!dbName)
 	{
 		if (work_database.length() <= 0)
@@ -168,6 +169,7 @@ RC_Return SM_Manager::GetTableAttrInfo(const char*dbName, const char * relName, 
 	fin.open((std::string(dbName) + "\\" + relName + ".attr").c_str());
 	if (fin) {
 		fin >> attrCount;
+		fin >> primaryKeyIx;
 		attributes = new AttrInfo[attrCount];
 		for (size_t i = 0; i < attrCount; i++)
 		{
@@ -186,7 +188,41 @@ RC_Return SM_Manager::GetTableAttrInfo(const char*dbName, const char * relName, 
 	}
 }
 
-RC_Return SM_Manager::SaveTableAttrInfo(const char * dbName, const char * relName, int attrCount, AttrInfo * attributes)
+RC_Return SM_Manager::GetTableAttrInfo(const char*dbName, const char * relName, int & attrCount, AttrInfo *& attributes, int & primaryKeyIx)
+{
+	if (!dbName)
+	{
+		if (work_database.length() <= 0)
+		{
+			cout << "No opening database. Please \"USE DATABASE <dbname>;\"\n";
+			return NO_OPENING_DATABASE_ERROR;
+		}
+		dbName = work_database.c_str();
+	}
+	ifstream fin;
+	fin.open((std::string(dbName) + "\\" + relName + ".attr").c_str());
+	if (fin) {
+		fin >> attrCount;
+		fin >> primaryKeyIx;
+		attributes = new AttrInfo[attrCount];
+		for (size_t i = 0; i < attrCount; i++)
+		{
+			attributes[i].attrName = new char[MAXNAME];
+			fin >> attributes[i].attrName;
+			fin >> attributes[i].attrLength;
+			int temp;  fin >> temp; attributes[i].attrType = AttrType(temp);
+			fin >> attributes[i].notnull;
+		}
+		fin.close();
+		return OK;
+	}
+	else {
+
+		return OPEN_ERROR;
+	}
+}
+
+RC_Return SM_Manager::SaveTableAttrInfo(const char * dbName, const char * relName, int attrCount, AttrInfo * attributes, int primaryKeyIx)
 {
 	if (!dbName)
 	{
@@ -194,6 +230,7 @@ RC_Return SM_Manager::SaveTableAttrInfo(const char * dbName, const char * relNam
 	}
 	ofstream fout((std::string(dbName) + "\\" + relName + ".attr").c_str());
 	fout << attrCount << endl;
+	fout << primaryKeyIx << endl;
 	for (size_t i = 0; i < attrCount; i++)
 	{
 		fout << attributes[i].attrName << endl;

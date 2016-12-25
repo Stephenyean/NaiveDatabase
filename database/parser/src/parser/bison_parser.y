@@ -161,7 +161,7 @@ int yyerror(YYLTYPE* llocp, SQLParserResult** result, yyscan_t scanner, const ch
 %token LOAD NULL PART PLAN SHOW TEXT TIME VIEW WITH ADD ALL
 %token AND ASC CSV FOR INT KEY NOT OFF SET TBL TOP AS BY IF
 %token IN IS OF ON OR TO
-%token DATABASE USE READ QUIT
+%token DATABASE USE READ QUIT MAX MIN AVG SUM
 
 
 /*********************************
@@ -279,9 +279,9 @@ single_statement:
             $$ = new SingleStatement(SingleStatement::kDropDatabase);
 			$$->name = $3;
          }
-	|	USE DATABASE IDENTIFIER{
+	|	USE IDENTIFIER{
             $$ = new SingleStatement(SingleStatement::kUseDatabase);
-			$$->name = $3;
+			$$->name = $2;
          }
 	|	SHOW DATABASE IDENTIFIER{
             $$ = new SingleStatement(SingleStatement::kShowDatabase);
@@ -442,7 +442,7 @@ delete_statement:
 		DELETE FROM table_name opt_where {
 			$$ = new DeleteStatement();
 			$$->tableName = $3;
-			$$->expr = $4;
+			$$->whereClause = $4;
 		}
 	;
 
@@ -546,12 +546,44 @@ set_operator:
 
 select_clause:
 		SELECT opt_distinct select_list from_clause opt_where opt_group {
-			$$ = new SelectStatement();
+			$$ = new SelectStatement(SelectStatement::NO_OP);
 			$$->selectDistinct = $2;
 			$$->selectList = $3;
 			$$->fromTable = $4;
 			$$->whereClause = $5;
 			$$->groupBy = $6;
+		}
+	|	SELECT opt_distinct SUM '(' select_list ')' from_clause opt_where opt_group {
+			$$ = new SelectStatement(SelectStatement::SUM_OP);
+			$$->selectDistinct = $2;
+			$$->selectList = $5;
+			$$->fromTable = $7;
+			$$->whereClause = $8;
+			$$->groupBy = $9;
+		}
+	|	SELECT opt_distinct AVG '(' select_list ')' from_clause opt_where opt_group {
+			$$ = new SelectStatement(SelectStatement::AVG_OP);
+			$$->selectDistinct = $2;
+			$$->selectList = $5;
+			$$->fromTable = $7;
+			$$->whereClause = $8;
+			$$->groupBy = $9;
+		}
+	|	SELECT opt_distinct MAX '(' select_list ')' from_clause opt_where opt_group {
+			$$ = new SelectStatement(SelectStatement::MAX_OP);
+			$$->selectDistinct = $2;
+			$$->selectList = $5;
+			$$->fromTable = $7;
+			$$->whereClause = $8;
+			$$->groupBy = $9;
+		}
+	|	SELECT opt_distinct MIN '(' select_list ')' from_clause opt_where opt_group {
+			$$ = new SelectStatement(SelectStatement::MIN_OP);
+			$$->selectDistinct = $2;
+			$$->selectList = $5;
+			$$->fromTable = $7;
+			$$->whereClause = $8;
+			$$->groupBy = $9;
 		}
 	;
 

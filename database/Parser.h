@@ -5,6 +5,8 @@
 #include "QL_Manager.h"
 #include "parser\src\SQLParser.h"
 #include "parser\src\sqlhelper.h"
+#include "parser\src\sql\Expr.h"
+#include <vector>
 class Parser
 {
 public:
@@ -27,6 +29,7 @@ private:
 	RM_Manager *rmm;
 	IX_Manager *ixm;
 	SM_Manager *smm;
+	void packConditions(const char * relName, std::vector<hsql::Expr*>* whereClause, std::vector<Condition> & conditions);
 	
 };
 
