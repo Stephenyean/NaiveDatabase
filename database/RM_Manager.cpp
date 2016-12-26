@@ -1,9 +1,13 @@
 #include "RM_Manager.h"
 #include <cstring>
+
+
+map<string, int> IdMap::fileIDMap;
 RM_Manager::RM_Manager(FileManager* fm, BufPageManager* bpm)
 {
 	this->fm = fm;
 	this->bpm = bpm;
+	
 }
 
 RM_Manager::~RM_Manager()
@@ -17,7 +21,7 @@ RC RM_Manager::createFile(const char * filename, int recordSize, int attrCount)
 
 	int fileID;
 	fm->openFile(filename, fileID);
-
+	IdMap::fileIDMap[filename] = fileID;
 	int pageID = 0, index;
 	BufType b = bpm->allocPage(fileID, pageID, index, false);
 	//int recordSize_temp=1;
@@ -37,18 +41,20 @@ RC RM_Manager::createFile(const char * filename, int recordSize, int attrCount)
 	//b=bpm->getPage(fileID, pageID, index);
 	//cout<<b[0]<<" "<<b[1]<<" "<<b[2]<<" "<<(int)b<<endl;
 	bpm->markDirty(index);
-	bpm->writeBack(index);
+	//bpm->writeBack(index);
 
 	//close file
 	if (verbose == 2)
 		cout << "[info] create file " << filename << endl;
-	fm->closeFile(fileID);
+	//fm->closeFile(fileID);
 	return OK;
 }
 
 RC RM_Manager::destroyFile(const char * filename)
 {
 	// waited to be modified
+	if (IdMap::fileIDMap.count(filename))
+		IdMap::fileIDMap.erase(filename);
 	remove(filename);
 	return OK;
 }
@@ -56,7 +62,13 @@ RC RM_Manager::destroyFile(const char * filename)
 RC RM_Manager::openFile(const char * filename, RM_FileHandle & fileHandle)
 {
 	int fileID;
-	fm->openFile(filename, fileID);
+	if (IdMap::fileIDMap.count(filename) == 0)
+	{
+		fm->openFile(filename, fileID);
+		IdMap::fileIDMap[filename] = fileID;
+	}
+	else
+		fileID = IdMap::fileIDMap[filename];
 	//cout<<"fileID: "<<fileID<<endl;
 	fileHandle.fileID = fileID;
 	fileHandle.fm = this->fm;
@@ -76,8 +88,8 @@ RC RM_Manager::openFile(const char * filename, RM_FileHandle & fileHandle)
 RC RM_Manager::closeFile(RM_FileHandle & fileHandle)
 {
 	fileHandle.isOpen = false;
-	fileHandle.forcePages(-1);
-	fm->closeFile(fileHandle.fileID);
+	//fileHandle.forcePages(-1);
+	//fm->closeFile(fileHandle.fileID);
 	fileHandle.fileHead = nullptr;
 	if (verbose == 2)
 		cout << "[info] close file " << endl;

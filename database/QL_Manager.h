@@ -58,7 +58,7 @@ public:
 	SM_Manager* smm;
 	IX_Manager* ixm;
 	RM_Manager* rmm;
-	int verbose = 2;
+	int verbose = 1;
 private:
 	bool CheckAndPreprocess(const char * relName, std::vector<Condition> & conditions, int & attrCount, AttrInfo *& attributes);
 	int findBestCondition(std::vector<Condition> & conditions);

@@ -6,6 +6,11 @@
 #include <iostream>
 #include <limits.h>
 using namespace std;
+class IdMap {
+public:
+	static std::map<std::string, int> fileIDMap;
+};
+
 
 typedef int RC;
 /*
@@ -102,7 +107,7 @@ public:
 
 	FileManager* fm;
 	BufPageManager* bpm;
-	int verbose = 2;
+	int verbose = 1;
 };
 
 class RM_FileHandle {
@@ -130,7 +135,7 @@ public:
 	
 	bool isOpen;
 	int headIndex;
-	int verbose = 2;
+	int verbose = 1;
 };
 
 /*

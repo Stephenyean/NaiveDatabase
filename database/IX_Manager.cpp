@@ -21,6 +21,7 @@ RC IX_Manager::CreateIndex(const char* fileName, int indexNo, AttrType attrType,
 	int fileID;
 	fm->createFile(indexFileName);
 	fm->openFile(indexFileName, fileID);
+	IdMap::fileIDMap[indexFileName] = fileID;
 	int index;
 	BufType b = bpm->allocPage(fileID, 0, index, false);
 	IX_File_Head* fileHead = (IX_File_Head*)b;
@@ -34,8 +35,8 @@ RC IX_Manager::CreateIndex(const char* fileName, int indexNo, AttrType attrType,
 	fileHead->pageSize = PAGE_SIZE;
 	fileHead->degree = computeDegree(attrLength);
 	bpm->markDirty(index);
-	bpm->writeBack(index);
-	fm->closeFile(fileID);
+	//bpm->writeBack(index);
+	//fm->closeFile(fileID);
 	return OK;
 }
 
@@ -50,7 +51,13 @@ RC IX_Manager::OpenIndex(const char* fileName, int indexNo, IX_IndexHandle &inde
 	char* indexFileName = new char[strlen(fileName) + 10];
 	sprintf_s(indexFileName, strlen(fileName) + 10, "%s.%d", fileName, indexNo);
 	int fileID;
-	fm->openFile(indexFileName, fileID);
+	if (IdMap::fileIDMap.count(indexFileName) == 0)
+	{
+		fm->openFile(indexFileName, fileID);
+		IdMap::fileIDMap[indexFileName] = fileID;
+	}
+	else
+		fileID = IdMap::fileIDMap[indexFileName];
 	int index;
 	BufType b = bpm->getPage(fileID, 0, index);
 	IX_File_Head * ixHead = (IX_File_Head*)b;
@@ -65,6 +72,8 @@ RC IX_Manager::OpenIndex(const char* fileName, int indexNo, IX_IndexHandle &inde
 RC IX_Manager::DestroyIndex(const char* fileName, int indexNo)
 {
 	// waite to be modified;
+	if (IdMap::fileIDMap.count((string(fileName) + "." + to_string(indexNo)).c_str()) != 0)
+		IdMap::fileIDMap.erase((string(fileName) + "." + to_string(indexNo)).c_str());
 	remove((string(fileName) + "." + to_string(indexNo)).c_str());
 	return OK;
 }
@@ -72,7 +81,7 @@ RC IX_Manager::DestroyIndex(const char* fileName, int indexNo)
 RC IX_Manager::CloseIndex(IX_IndexHandle &indexHandle)
 {
 	//waited to be modified
-	indexHandle.forcePages(-1);
+	//indexHandle.forcePages(-1);
 	if (verbose == 2)
 		cout << "[info] close index" << endl;
 	return OK;
@@ -171,7 +180,7 @@ RC IX_IndexHandle::RecursiveInsertEntry(int pageNum, void *pData, const RID &rid
 					//keyArray[i] = keyArray[i - 1];
 					nodeArray[i] = nodeArray[i - 1];
 				}
-				int copyLength = strlen((char*)keyData);
+				int copyLength = strlen((char*)keyData) + 1;
 				memcpy((void*)(keyArray + ixHead->attrLength * position), (void*)keyData, copyLength);
 				//keyArray[position] = keyData;
 				nodeArray[position].nextPage = -1;
@@ -189,7 +198,8 @@ RC IX_IndexHandle::RecursiveInsertEntry(int pageNum, void *pData, const RID &rid
 		else // full, split
 		{
 			// allocate a new page
-			cout << "[Info]: Insert Index\n";
+			if(verbose == 2)
+				cout << "[Info]: Insert Index\n";
 			BufType newb = bpm->allocPage(fileID, ixHead->numPages, index, false);
 			initIxPage((char*)newb);
 			bpm->markDirty(index);
@@ -285,7 +295,8 @@ RC IX_IndexHandle::RecursiveInsertEntry(int pageNum, void *pData, const RID &rid
 						memcpy(newKeyArray + ixHead->attrLength*j, keyArray + ixHead->attrLength*(j - 1), ixHead->attrLength);
 						nodeArray[j] = nodeArray[j - 1];
 					}
-					memcpy(keyArray + ixHead->attrLength*position, pData, ixHead->attrLength);
+					int copyLength = strlen((char*)pData) + 1;
+					memcpy(keyArray + ixHead->attrLength*position, pData, copyLength);
 					nodeArray[position].nextPage = -1;
 					nodeArray[position].rid = rid;
 					// add other types
@@ -306,7 +317,8 @@ RC IX_IndexHandle::RecursiveInsertEntry(int pageNum, void *pData, const RID &rid
 						}
 						else
 						{
-							memcpy(newKeyArray + ixHead->attrLength*j, pData, ixHead->attrLength);
+							int copyLength = strlen((char*)pData) + 1;
+							memcpy(newKeyArray + ixHead->attrLength*j, pData, copyLength);
 							newNodeArray[j].nextPage = -1;
 							newNodeArray[j].rid = rid;
 						}

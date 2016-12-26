@@ -30,6 +30,7 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 	}
 
 	if (verbose == 2) {
+		cout << "verbose : " << verbose << endl;
 		int i;
 		cout << "Insert\n";
 		cout << "   relName = " << relName << "\n";
@@ -61,7 +62,7 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 	}
 	*/
 	RM_FileHandle rmFileHandle;
-	string fileName = "./" + smm->getWork_Database() + "/" + relName;
+	string fileName = smm->getWork_Database() + "\\" + relName;
 	if ((rc = rmm->openFile(fileName.c_str(), rmFileHandle)))
 	{
 		cout << "Error to open table " << relName << endl;
@@ -74,7 +75,7 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 
 	for (int i = 0; i < attrCount; i++)
 	{
-		string indexFileName = "./" + smm->getWork_Database() + "/" + relName;
+		string indexFileName = smm->getWork_Database() + "\\" + relName;
 		recordSize += attrInfo[i].attrLength;
 		if ((rc = ixm->OpenIndex(indexFileName.c_str(), i, ixIndexHandle[i])))
 		{
@@ -99,7 +100,7 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 	for (int i = 0; i < attrCount; i++)
 	{
 		
-		memcpy(pData + offset, values[i].data, std::max(4, (int)strlen((char*)values[i].data)));
+		memcpy(pData + offset, values[i].data, std::max(4, (int)strlen((char*)values[i].data) + 1));
 		offset += attrInfo[i].attrLength;
 	}
 	
@@ -230,7 +231,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 
 	for (int i = 0; i < nRelations; i++)
 	{
-		string fileName = "./" + smm->getWork_Database() + "/" + relations[i];
+		string fileName = smm->getWork_Database() + "\\" + relations[i];
 		rmm->openFile(fileName.c_str(), rmFileHandle[i]);
 	}
 
@@ -322,7 +323,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 				{
 					if (string(conditions[iCondition].lhsAttr.attrName) == string(attrInfo[i][k].attrName))
 					{
-						string indexFileName = "./" + smm->getWork_Database() + "/" + relations[i];
+						string indexFileName = smm->getWork_Database() + "\\" + relations[i];
 						if (rc = ixm->OpenIndex(indexFileName.c_str(), k, ixIndexHandle))
 						{
 							cout << "Error to open Index " << k << endl;
@@ -348,7 +349,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 		char* data = new char[conditionAttrLength];
 		int copyLength = 4;
 		if (conditions[iCondition].rhsValue.type == STRING || conditions[iCondition].rhsValue.type == VARCHAR)
-			copyLength = strlen((char*)conditions[iCondition].rhsValue.data);
+			copyLength = strlen((char*)conditions[iCondition].rhsValue.data) + 1;
 		memcpy((void*)data, (void*)conditions[iCondition].rhsValue.data, copyLength);
 		if (rc = scan.OpenScan(ixIndexHandle, conditions[iCondition].op, data))
 		{
@@ -512,7 +513,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 				{
 					if (string(conditions[iCondition].lhsAttr.attrName) == string(attrInfo[i][k].attrName))
 					{
-						string indexFileName = "./" + smm->getWork_Database() + "/" + relations[i];
+						string indexFileName =smm->getWork_Database() + "\\" + relations[i];
 						if (rc = ixm->OpenIndex(indexFileName.c_str(), k, ixIndexHandle))
 						{
 							cout << "Error to open Index " << k << endl;
@@ -537,7 +538,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 		char* data = new char[conditionAttrLength];
 		int copyLength = 4;
 		if (conditions[iCondition].rhsValue.type == STRING || conditions[iCondition].rhsValue.type == VARCHAR)
-			copyLength = strlen((char*)conditions[iCondition].rhsValue.data);
+			copyLength = strlen((char*)conditions[iCondition].rhsValue.data) + 1;
 		memcpy((void*)data, (void*)conditions[iCondition].rhsValue.data, copyLength);
 		if (rc = scan.OpenScan(ixIndexHandle, conditions[iCondition].op, data))
 		{
@@ -745,7 +746,7 @@ RC QL_Manager::Delete(const char *relName,            // relation to delete from
 	IX_IndexHandle ixIndexHandle;
 	int iCondition = findBestCondition(conditions);
 	int iIndex = findCorAttr(attrCount, attributes, conditions[iCondition]);
-	string indexFileName = "./" + smm->getWork_Database() + "/" + relName;
+	string indexFileName = smm->getWork_Database() + "\\" + relName;
 	if (rc = ixm->OpenIndex(indexFileName.c_str(), iIndex, ixIndexHandle))
 	{
 		cout << "Error to open Index " << iIndex << endl;
@@ -755,7 +756,7 @@ RC QL_Manager::Delete(const char *relName,            // relation to delete from
 
 	// open rmfileHandle
 	RM_FileHandle rmFileHandle;
-	string fileName = "./" + smm->getWork_Database() + "/" + relName;
+	string fileName = smm->getWork_Database() + "\\" + relName;
 	rmm->openFile(fileName.c_str(), rmFileHandle);
 
 	// open idx scan
