@@ -136,7 +136,6 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 	return OK;
 }
 
-
 // 0. first judge if the database is open
 // 1. judge if the tables exist
 // 2. judge if the table has those columns
@@ -771,16 +770,35 @@ RC QL_Manager::Delete(const char *relName,            // relation to delete from
 		return rc;
 	}
 
-	// open deletemode
+	// find all satiefied stored in mem
 	RID rid;
 	RM_Record record;
+	std::vector<RM_Record> records; std::vector<RID> rids;
 	while (!(rc = ixScan.GetNextEntry(rid)))
 	{
-		isSatisifyConditions(attrCount, attributes, rmFileHandle, ixScan, rid, record, conditions, 1);
+		if (isSatisifyConditions(attrCount, attributes, rmFileHandle, rid, record, conditions))
+		{
+			rids.push_back(rid);
+			records.push_back(record);
+		}
 	}
 
-	// then delete in rm
+	// delete 
+	std::vector<IX_IndexHandle> ixIndexHandles;
+	ixm->CloseIndex(ixIndexHandle);
+	for (size_t i = 0; i < attrCount; i++)
+	{
+		ixm->OpenIndex(indexFileName.c_str(), i, ixIndexHandle);
+		ixIndexHandles.push_back(ixIndexHandle);
+	}
+	deleteEntrys(rids, records, rmFileHandle, ixIndexHandles);
 
+	// close file
+	rmm->closeFile(rmFileHandle);
+	for (IX_IndexHandle ixIndexHandle : ixIndexHandles)
+	{
+		ixm->CloseIndex(ixIndexHandle);
+	}
 	return OK;
 }
 
@@ -820,6 +838,27 @@ bool QL_Manager::CheckAndPreprocess(const char * relName, std::vector<Condition>
 		return false;
 	}
 
+	// judge if attrName exists
+	for (Condition condition : conditions)
+	{
+		bool found1 = false, found2 = !condition.bRhsIsAttr;
+		for (int k = 0; k < attrCount; k++)
+		{
+			if (!found1)
+			{
+				found1 = string(condition.lhsAttr.attrName) == string(attributes[k].attrName);
+			}
+			if (!found2)
+			{
+				found2 = string(condition.rhsAttr.attrName) == string(attributes[k].attrName);
+			}
+		}
+		if (!found1 || !found2)
+		{
+			cout << "AtrrName Error\n";
+			return false;
+		}
+	}
 	return true;
 }
 
@@ -895,7 +934,7 @@ int QL_Manager::findBestCondition(std::vector<Condition> & conditions)
 	return iCondition;
 }
 
-bool QL_Manager::isSatisifyConditions(int attrCount, AttrInfo * attributes, RM_FileHandle & rmFileHandle, IX_IndexScan & scan, const RID & rid, RM_Record &record, std::vector<Condition> & conditions, int deletemode)
+bool QL_Manager::isSatisifyConditions(int attrCount, AttrInfo * attributes, RM_FileHandle & rmFileHandle, const RID & rid, RM_Record &record, std::vector<Condition> & conditions)
 {
 	int nConditions = conditions.size();
 	// find rid in rmm, put it in the record
@@ -988,14 +1027,21 @@ bool QL_Manager::isSatisifyConditions(int attrCount, AttrInfo * attributes, RM_F
 			}
 		}
 	}
-
-	// if deletemode delete it in the rmm and ixm, WARNING NOT IN rmm ?
-	if (deletemode && satisfied)
-	{
-		scan.DeleteCurrentEntry();
-		rmFileHandle.deleteRec(rid);
-	}
 	return satisfied;
+}
+
+void QL_Manager::deleteEntrys(const std::vector<RID> & rids, const std::vector<RM_Record> & records, RM_FileHandle & rmFileHandle, std::vector<IX_IndexHandle> & ixIndexHandles)
+{
+	for (size_t i = 0; i < rids.size(); ++i)
+	{
+		rmFileHandle.deleteRec(rids[i]);
+		char *pData; records[i].getData(pData);
+		for (IX_IndexHandle ixIndexHandle : ixIndexHandles)
+		{
+			ixIndexHandle.DeleteEntry(pData, rids[i]);
+			pData += ixIndexHandle.ixHead->attrLength;
+		}
+	}
 }
 
 int QL_Manager::findCorAttr(int attrCount, const AttrInfo * attributes, const Condition & condition)

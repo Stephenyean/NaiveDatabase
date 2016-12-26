@@ -62,7 +62,8 @@ public:
 private:
 	bool CheckAndPreprocess(const char * relName, std::vector<Condition> & conditions, int & attrCount, AttrInfo *& attributes);
 	int findBestCondition(std::vector<Condition> & conditions);
-	bool isSatisifyConditions(int attrCount, AttrInfo * attributes, RM_FileHandle & rmFileHandle, IX_IndexScan & scan, const RID & rid, RM_Record &record, std::vector<Condition> &  conditions, int deletemode);
+	bool isSatisifyConditions(int attrCount, AttrInfo * attributes, RM_FileHandle & rmFileHandle, const RID & rid, RM_Record &record, std::vector<Condition> &  conditions);
+	void deleteEntrys(const std::vector<RID> & rids, const std::vector<RM_Record> & records, RM_FileHandle & rmFileHandle, std::vector<IX_IndexHandle> & ixIndexHandles);
 	int findCorAttr(int attrCount, const AttrInfo * attributes, const Condition & condition);
 	std::string ReplaceAll(std::string str, const std::string& from, const std::string& to);
 
