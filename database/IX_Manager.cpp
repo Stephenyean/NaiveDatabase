@@ -783,6 +783,47 @@ RC IX_IndexHandle::DeleteEntry  (void *pData, const RID &rid)  // Delete index e
 
 		}
 	}
+	else if (ixHead->attrType == STRING || ixHead->attrType == VARCHAR)
+	{
+		char* keyArray = (char*)(b + sizeof(IX_Page_head));
+		char* keyData = (char*)pData;
+		while (true)
+		{
+			if (position >= pageHead->numEntries)
+			{
+				if (pageHead->nextpage == -1)
+					break;
+				else
+				{
+					b = bpm->getPage(fileID, pageHead->nextpage, index);
+					pageHead = (IX_Page_head*)b;
+					getPosition(pData, position, b);
+					nodeArray = (IX_Node*)((char*)b + sizeof(IX_Page_head) + ixHead->attrLength * ixHead->degree);
+					pageNum = nodeArray[position].nextPage;
+				}
+			}
+			else if (string(keyArray + ixHead->attrLength * position) != string(keyData))
+				break;
+			else if (nodeArray[position].rid.compare(rid))
+			{
+				// delete this record;
+				for (int j = position; j < pageHead->numEntries - 1; j++)
+				{
+					memcpy(keyArray + ixHead->attrLength * j, keyArray + ixHead->attrLength * (j + 1), ixHead->attrLength);
+					nodeArray[j] = nodeArray[j + 1];
+				}
+				pageHead->numEntries--;
+				found = true;
+				bpm->markDirty(index);
+				if (verbose == 2)
+					cout << "[info] delete entry with data " << keyData << endl;
+				break;
+			}
+			else
+				position++;
+
+		}
+	}
 	if (found == false)
 	{
 		if (verbose == 2)
