@@ -46,7 +46,7 @@ public:
 	int computeDegree(int attrLength);
 	FileManager* fm;
 	BufPageManager* bpm;
-	int verbose = 2;
+	int verbose = 1;
 };
 
 
@@ -68,7 +68,7 @@ public:
 	IX_File_Head* ixHead;
 	int ixIndex;
 	int fileID;
-	int verbose = 2;
+	int verbose = 1;
 };
 
 
