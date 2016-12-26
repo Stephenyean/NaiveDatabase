@@ -20,7 +20,7 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 {
 	if (relName == NULL)
 	{
-		auto e = new vector<int>;
+		//auto e = new vector<int>;
 		return QL_NULL_ERROR;
 	}
 
@@ -99,8 +99,10 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 	}
 	for (int i = 0; i < attrCount; i++)
 	{
-		
-		memcpy(pData + offset, values[i].data, std::max(4, (int)strlen((char*)values[i].data) + 1));
+		int copyLength = 4;
+		if (attrInfo[i].attrType == STRING || attrInfo[i].attrType == VARCHAR)
+			copyLength = strlen((char*)values[i].data) + 1;
+		memcpy(pData + offset, values[i].data, copyLength);
 		offset += attrInfo[i].attrLength;
 	}
 	
@@ -113,7 +115,6 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 
 	delete[]nullValues;
 	nullValues = nullptr;
-
 	for (int i = 0; i < attrCount; i++)
 	{
 		if (rc = ixIndexHandle[i].InsertEntry(values[i].data, rid))
@@ -347,6 +348,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 		// open scan
 		IX_IndexScan scan;
 		char* data = new char[conditionAttrLength];
+		memset(data, 0, conditionAttrLength);
 		int copyLength = 4;
 		if (conditions[iCondition].rhsValue.type == STRING || conditions[iCondition].rhsValue.type == VARCHAR)
 			copyLength = strlen((char*)conditions[iCondition].rhsValue.data) + 1;
@@ -536,6 +538,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 
 		IX_IndexScan scan;
 		char* data = new char[conditionAttrLength];
+		memset(data, 0, conditionAttrLength);
 		int copyLength = 4;
 		if (conditions[iCondition].rhsValue.type == STRING || conditions[iCondition].rhsValue.type == VARCHAR)
 			copyLength = strlen((char*)conditions[iCondition].rhsValue.data) + 1;
@@ -762,6 +765,7 @@ RC QL_Manager::Delete(const char *relName,            // relation to delete from
 	// open idx scan
 	IX_IndexScan ixScan;
 	char* data = new char[conditionAttrLength];
+	memset(data, 0, conditionAttrLength);
 	int copyLength = 4;
 	if (conditions[iCondition].rhsValue.type == STRING || conditions[iCondition].rhsValue.type == VARCHAR)
 		copyLength = strlen((char*)conditions[iCondition].rhsValue.data)+1;
@@ -958,7 +962,7 @@ bool QL_Manager::isSatisifyConditions(int attrCount, AttrInfo * attributes, RM_F
 					break;
 				}
 			}
-			else if (attributes[nAttr].attrType == AttrType::STRING)
+			else if (attributes[nAttr].attrType == AttrType::STRING || attributes[nAttr].attrType == AttrType::VARCHAR)
 			{
 				int attrOffset = 0;
 				for (int i = 0; i < nAttr; i++)

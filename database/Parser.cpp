@@ -197,7 +197,7 @@ void Parser::processCreate(hsql::CreateStatement *stmt)
 			attributes[i].attrLength = 256;
 			break;
 		case AttrType::VARCHAR:
-			attributes[i].attrLength = column->width;
+			attributes[i].attrLength = column->width + 1;
 			break;
 		default:
 			attributes[i].attrLength = 4; // DFLOAT INT
@@ -245,6 +245,7 @@ void Parser::processInsert(hsql::InsertStatement *stmt){
 					Value value;
 					value.type = STRING;
 					value.data = (void*)new char[strlen(localValue->name) + 1];// localValue->name;
+					memset(value.data, 0, strlen(localValue->name) + 1);
 					memcpy(value.data, localValue->name, strlen(localValue->name) + 1);
 					myValues.push_back(value);
 					break;

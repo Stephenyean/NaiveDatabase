@@ -490,6 +490,7 @@ RC IX_IndexHandle::RecursiveSplitNode(int pageNum, int newPageNum, void* pData, 
 				// copy half of the data to the new page
 				int N = ixHead->degree;
 				char* newData = new char[ixHead->attrLength];
+				memset(newData, 0, ixHead->attrLength);
 				if (trans((N + 1) / 2, position) >= 0)
 					memcpy(newData, keyArray + ixHead->attrLength * trans((N + 1) / 2, position), ixHead->attrLength);
 				else
@@ -860,20 +861,31 @@ RC IX_IndexScan::SearchEntry(int& pageNum, int& position)
 		}
 		else
 		{
+			bool found = false;
 			if (attrtype == DINT)
 			{
 				int keyValue = *(int*)value;
 				int* keyArray = (int*)((char*)b + sizeof(IX_Page_head));
 				if (keyValue <= keyArray[0])
+				{
 					pageNum = nodeArray[0].nextPage;
+					found = true;
+				}
 				else if (keyValue > keyArray[pageHead->numEntries - 1])
+				{
 					pageNum = nodeArray[pageHead->numEntries].nextPage;
+					found = true;
+				}
 				else
 				{
 					for (int j = 1; j < pageHead->numEntries; j++)
 					{
 						if (keyArray[j] >= keyValue)
+						{
 							pageNum = nodeArray[j].nextPage;
+							found = true;
+							break;
+						}
 					}
 				}
 			}
@@ -882,18 +894,30 @@ RC IX_IndexScan::SearchEntry(int& pageNum, int& position)
 				char* keyValue = (char*)value;
 				char* keyArray = (char*)((char*)b + sizeof(IX_Page_head));
 				if (string(keyValue) <= string(keyArray))
+				{
 					pageNum = nodeArray[0].nextPage;
-				if (string(keyArray + (pageHead->numEntries - 1)*attrLength) > string(keyValue))
+					found = true;
+				}
+				if (string(keyArray + (pageHead->numEntries - 1)*attrLength) <= string(keyValue))
+				{
 					pageNum = nodeArray[pageHead->numEntries].nextPage;
+					found = true;
+				}
 				else
 				{
 					for (int j = 1; j < pageHead->numEntries; j++)
 					{
 						if (string(keyArray + j * attrLength) >= string(keyValue))
+						{
 							pageNum = nodeArray[j].nextPage;
+							found = true;
+							break;
+						}
 					}
 				}
 			}
+			if (!found)
+				cout << "Error Search Entry\n";
 			// add other types
 		}
 		return SearchEntry(pageNum, position);
@@ -1089,8 +1113,8 @@ RC IX_IndexScan::DeleteCurrentEntry()
 	}
 	else if (attrtype == STRING || attrtype == VARCHAR)
 	{
-		int keyValue = *(int*)value;
-		int* keyArray = (int*)((char*)b + sizeof(IX_Page_head));
+		char* keyValue = (char*)value;
+		char* keyArray = (char*)((char*)b + sizeof(IX_Page_head));
 		pageHead->numEntries--;
 		for (int j = currentPosition; j < pageHead->numEntries; j++)
 		{
