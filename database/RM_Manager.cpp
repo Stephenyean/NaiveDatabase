@@ -405,7 +405,8 @@ RM_Record::RM_Record(const char *pData, int record_size, const RID &rid) {
 }
 
 RM_Record::~RM_Record() {
-	delete[]pData;
+	//if(pData)
+	//	delete[]pData;
 	this->pData = nullptr;
 }
 
@@ -539,7 +540,7 @@ RC RM_FileScan::GetNextRec(RM_Record &rec)
 				else
 					currentSlot++;
 			}
-			else if (attrtype == STRING)
+			else if (attrtype == STRING || attrtype == VARCHAR)
 			{
 				string recordValue(data);
 				string givenValue((char*)value);
@@ -586,6 +587,9 @@ bool RM_FileScan::matchRecord(T recordValue, T givenValue) {
 		break;
 	case NE_OP:
 		if (recordValue != givenValue) recordMatch = true;
+		break;
+	case NO_OP:
+		recordMatch = true;
 		break;
 	default:
 		break;

@@ -55,6 +55,27 @@ public:
 		 std::vector<Condition> & conditions);  // conditions in Where clause
 	template<typename T>
 	bool satisfiesCondition(T key, T value, CompOp op);
+	RC print(RM_Record& record, int* attrCount, int nRelate, vector<RelAttr> selAttrs, vector<string> relations, AttrInfo** attrInfo);
+	bool isRecordSatisfied(void* lhsValue, CompOp op, void* rhsValue, AttrType attrtype)
+	{
+		if (attrtype == DINT)
+		{
+			int lhsInt = *((int*)lhsValue);
+			int rhsInt = *((int*)rhsValue);
+			return satisfiesCondition(lhsInt, rhsInt, op);
+		}
+		else
+		{
+			return satisfiesCondition(string((char*)lhsValue), string((char*)rhsValue), op);
+		}
+	}
+	int getOffset(int indexRelate, int indexAttr, AttrInfo** attrInfo)
+	{
+		int offset = 0;
+		for (int i = 0; i < indexAttr; i++)
+			offset += attrInfo[indexRelate][i].attrLength;
+		return offset;
+	}
 	SM_Manager* smm;
 	IX_Manager* ixm;
 	RM_Manager* rmm;
@@ -64,6 +85,7 @@ private:
 	int findBestCondition(std::vector<Condition> & conditions);
 	bool isSatisifyConditions(int attrCount, AttrInfo * attributes, RM_FileHandle & rmFileHandle, IX_IndexScan & scan, const RID & rid, RM_Record &record, std::vector<Condition> &  conditions, int deletemode);
 	int findCorAttr(int attrCount, const AttrInfo * attributes, const Condition & condition);
+	RC findCorAttr(int& indexRelation, int& indexAttr, int* attrCount, AttrInfo ** attributes,  Condition & condition, vector<string> relations, bool right);
 	std::string ReplaceAll(std::string str, const std::string& from, const std::string& to);
 
 };

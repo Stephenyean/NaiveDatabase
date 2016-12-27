@@ -896,7 +896,7 @@ RC IX_IndexScan::SearchEntry(int& pageNum, int& position)
 	{
 		IX_Node* nodeArray = (IX_Node*)((char*)b + sizeof(IX_Page_head) + attrLength*indexHandle.ixHead->degree);
 		
-		if (compOp == LE_OP || compOp == LT_OP)
+		if (compOp == LE_OP || compOp == LT_OP || compOp == ISNULL_OP)
 		{
 			pageNum = nodeArray[0].nextPage;
 		}
@@ -978,6 +978,8 @@ RC IX_IndexScan::SearchEntry(int& pageNum, int& position)
 			int* keyArray = (int*)((char*)b + sizeof(IX_Page_head));
 			for (int j = 0; j < pageHead->numEntries; j++)
 			{
+				if (compOp == ISNULL_OP)
+					keyValue = -99999999;
 				if (satisfiesCondition(keyArray[j], keyValue))
 				{
 					found = true;
@@ -992,6 +994,8 @@ RC IX_IndexScan::SearchEntry(int& pageNum, int& position)
 			char* keyArray = (char*)((char*)b + sizeof(IX_Page_head));
 			for (int j = 0; j < pageHead->numEntries; j++)
 			{
+				if (compOp == ISNULL_OP)
+					keyValue = "\n\n\0";
 				if (satisfiesCondition(string(keyArray + j * attrLength), string(keyValue)))
 				{
 					found = true;

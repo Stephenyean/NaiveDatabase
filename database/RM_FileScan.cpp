@@ -27,18 +27,18 @@ RC RM_FileScan::GetNextRec(RM_Record & rec)
 	do
 	{
 		char *data;
-		//³¬³ö¿ÉÈÝÐíÒ³
+		
 		if (this->pPageNum > this->maxPageNum)
 		{
 			return RM_EOF:
 		}
-		//½øÈëÏÂÒ»Ò³
+		//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»Ò³
 		if (pSlotNum == this->maxSlotNum)
 		{
 			pPageNum++;
 			pSlotNum = -1;
 		}
-		//Ò³³õÊ¼»¯¶ÁÈ¡
+		//Ò³ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½È¡
 		if (pSlotNum == -1)
 		{
 			RM_Record rm_record;
@@ -97,7 +97,7 @@ RC RM_FileScan::GetNextRec(RM_Record & rec)
 				}
 			}
 		}
-
+		data = nullptr;
 	} while (true);
 
 }

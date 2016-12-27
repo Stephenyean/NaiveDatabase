@@ -469,6 +469,11 @@ void Parser::packConditions(const char * relName, std::vector<hsql::Expr*>* wher
 				tempValue.data = (void*)localValue->expr2->getName();
 				tempValue.type = AttrType::STRING;
 			}
+			else if (localValue->expr2->type == ExprType::kExprNull)
+			{
+				tempValue.data = (void*)(new int[1]);
+				tempValue.type = AttrType::NUL;
+			}
 			localCondition.rhsValue = tempValue;
 		}
 		else
@@ -476,10 +481,10 @@ void Parser::packConditions(const char * relName, std::vector<hsql::Expr*>* wher
 			localCondition.bRhsIsAttr = 1;
 			if (localValue->expr2->hasTable())
 			{
-				localCondition.lhsAttr = RelAttr(string(localValue->expr2->table), string(localValue->expr2->getName()));
+				localCondition.rhsAttr = RelAttr(string(localValue->expr2->table), string(localValue->expr2->getName()));
 			}
 			else
-				localCondition.lhsAttr = RelAttr(relName, string(localValue->expr2->getName()));
+				localCondition.rhsAttr = RelAttr(relName, string(localValue->expr2->getName()));
 		}
 
 		conditions.push_back(localCondition);
