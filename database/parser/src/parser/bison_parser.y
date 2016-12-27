@@ -490,7 +490,7 @@ update_statement:
 		$$ = new UpdateStatement();
 		$$->table = $2;
 		$$->updates = $4;
-		$$->where = $5;
+		$$->whereClause = $5;
 	}
 	;
 

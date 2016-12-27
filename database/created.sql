@@ -35,7 +35,7 @@ CREATE TABLE orders (
 
 INSERT INTO book VALUES 
  (200001,'Marias Diary (Plus S.)','Mark P. O. Morford',100082,5991,2530),
- (200002,'Standing in the Shadows','Richard Bruce Wright',101787,2900,1860),
+ (200002,'Standing in the Shadows','Anthony Boucher',101787,2900,1860),
  (200003,'Children of the Thunder','Carlo DEste',102928,3447,2154),
  (200004,'The Great Gilly Hopkins','Gina Bari Kolata',101339,39,2809),
  (200005,'Meine Juden--eure Juden','E. J. W. Barber',103089,206,2771),

@@ -398,7 +398,16 @@ RM_Record::RM_Record() {
 	this->pData = nullptr;
 }
 
+RM_Record::RM_Record(const RM_Record & record)
+{
+	this->recordSize = record.recordSize;
+	this->pData = new char[recordSize];
+	memcpy(this->pData, record.pData, recordSize * sizeof(char));
+	this->rid = record.rid;
+}
+
 RM_Record::RM_Record(const char *pData, int record_size, const RID &rid) {
+	this->recordSize = record_size;
 	this->pData = new char[record_size];
 	memcpy(this->pData, pData, record_size * sizeof(char));
 	this->rid = rid;
@@ -489,7 +498,9 @@ RC RM_FileScan::OpenScan(const RM_FileHandle& fileHandle,
 		return ERROR;
 	int index;
 	b = fileHandle.bpm->getPage(fileHandle.fileID, 1, index);
-	bitMap = (char*)b + sizeof(Page_Head);
+	bitMap = (char*)
+		
+		sizeof(Page_Head);
 	return OK;
 }
 
