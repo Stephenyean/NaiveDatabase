@@ -92,7 +92,7 @@ namespace hsql {
 			return e_type == type;
 		}
 		inline bool isLiteral() {
-			return isType(kExprLiteralInt) || isType(kExprLiteralFloat) || isType(kExprLiteralString) || isType(kExprPlaceholder);
+			return isType(kExprLiteralInt) || isType(kExprLiteralFloat) || isType(kExprLiteralString) || isType(kExprPlaceholder) || isType(kExprNull);
 		}
 		inline bool hasAlias() {
 			return alias != NULL;

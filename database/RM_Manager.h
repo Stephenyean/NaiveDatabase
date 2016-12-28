@@ -71,6 +71,12 @@ public:
 	RC getSlotNum(int &slotNum)const;  // Return slot number
 	int getPageNum() { return pageNum; }
 	int getSlotNum() { return slotNum; }
+	bool operator == (RID rid2) { return this->pageNum == rid2.pageNum && this->slotNum == rid2.slotNum; }
+	bool operator < (const RID rid2) const
+	{ 
+		//return true;
+		return (this->pageNum == rid2.pageNum) ? (this->slotNum < rid2.slotNum ): (this->pageNum < rid2.pageNum);
+	}
 	void setPageNum(int pageNum);		//reset pagenum when it is necessary
 	void setSlotNum(int slotNum);		//reset slotnum when it is necessary
 	bool compare(const RID& rid);				// compare two rids if equal
