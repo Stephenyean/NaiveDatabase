@@ -268,7 +268,15 @@ void Parser::processInsert(hsql::InsertStatement *stmt){
 		}
 		switch(stmt->type){
 			case(InsertStatement::kInsertValues):{
-				qlm->Insert(stmt->tableName, myValues.size(), myValues);
+				if (checkPK(stmt->tableName, myValues))
+				{
+					qlm->Insert(stmt->tableName, myValues.size(), myValues);
+				}
+				else
+				{
+					cout << "Primary Key Check Failed" << endl;
+				}
+
 				break;
 			}
 			case(InsertStatement::kInsertSelect):
@@ -504,6 +512,22 @@ void Parser::packConditions(const char * relName, std::vector<hsql::Expr*>* wher
 			localCondition.op = CompOp::GE_OP;
 		case(hsql::Expr::OperatorType::LIKE):
 			localCondition.op = CompOp::LIKE_OP;
+			// replace other regex identifier
+			vector<string> regexIds = { "\\", "(", ")", "?", ":", "[", "]", "*", "+","^", "$", "|" };
+			string givenValue = string((char *)localCondition.rhsValue.data);
+			for (string regexId : regexIds)
+			{
+				ReplaceAll(givenValue, regexId, "\\" + regexId);
+			}
+			// translate sql to regex
+			ReplaceAll(givenValue, "_", "(.)");
+			ReplaceAll(givenValue, "%", "(.)*");
+			// find match
+			char * data = new char[givenValue.size()+1];
+			memcpy(data, givenValue.c_str(), givenValue.size());
+			data[givenValue.size() + 1] = '\0';
+			delete[] localCondition.rhsValue.data;
+			localCondition.rhsValue.data = (void*)data;
 			break;
 		}
 
@@ -562,6 +586,51 @@ void Parser::getFiles(string path, vector<string>& files)
 		files.push_back(name);
 	} while (FindNextFile(h, &f));
 	FindClose(h);
+}
+
+std::string Parser::ReplaceAll(std::string & str, const std::string & from, const std::string & to)
+{
+	size_t start_pos = 0;
+	while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
+		str.replace(start_pos, from.length(), to);
+		start_pos += to.length(); // Handles case where 'to' is a substring of 'from'
+	}
+	return str;
+}
+
+bool Parser::checkPK(const char * relName, const vector<Value> & values)
+{
+	// get all attrInfos
+	int attrCount;
+	AttrInfo * attributes = NULL;
+	int primaryKeyIx; 
+	smm->GetTableAttrInfo(smm->getWork_Database().c_str(), relName, attrCount, attributes, primaryKeyIx);
+	// open Handle
+	RC rc;
+	IX_IndexHandle ixIndexHandle;
+	string indexFileName = smm->getWork_Database() + "\\" + relName;
+	if (rc = ixm->OpenIndex(indexFileName.c_str(), primaryKeyIx, ixIndexHandle))
+	{
+		cout << "Error to open Index " << primaryKeyIx << endl;
+		return false;
+	}
+	// open scan
+	IX_IndexScan ixScan;
+	if (rc = ixScan.OpenScan(ixIndexHandle, EQ_OP, values[primaryKeyIx].data))
+	{
+		cout << "Error to Open scan\n" << endl;
+		return rc;
+	}
+	// find duplicate
+	RID rid;
+	if (rc = ixScan.GetNextEntry(rid))
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
 
 

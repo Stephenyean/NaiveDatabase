@@ -87,6 +87,5 @@ private:
 	void deleteEntrys(const std::vector<RID> & rids, const std::vector<RM_Record> & records, RM_FileHandle & rmFileHandle, std::vector<IX_IndexHandle> & ixIndexHandles);
 	int findCorAttr(int attrCount, const AttrInfo * attributes, const char * attrName);
 	RC findCorAttr(int& indexRelation, int& indexAttr, int* attrCount, AttrInfo ** attributes,  Condition & condition, vector<string> relations, bool right);
-	std::string ReplaceAll(std::string & str, const std::string& from, const std::string& to);
 	std::vector<RM_Record> recordsBuffer;
 };

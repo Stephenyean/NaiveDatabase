@@ -70,7 +70,7 @@ namespace hsql {
 			SUM_OP,
 			MAX_OP,
 			AVG_OP,
-			MIN_OP,
+			MIN_OP
 		};
 		SelectStatement(SelectType type) :
 			SQLStatement(kStmtSelect),

@@ -125,6 +125,8 @@ int yyerror(YYLTYPE* llocp, SQLParserResult** result, yyscan_t scanner, const ch
 	hsql::ColumnDefinition* column_t;
 	hsql::GroupByDescription* group_t;
 	hsql::UpdateClause* update_t;
+	hsql::CheckInDef* check_t;
+	hsql::SelectStatement::SelectType select_type;
 
 	hsql::SQLParserResult* stmt_list;
 
@@ -161,7 +163,7 @@ int yyerror(YYLTYPE* llocp, SQLParserResult** result, yyscan_t scanner, const ch
 %token LOAD NULL PART PLAN SHOW CHAR TIME VIEW WITH ADD ALL
 %token AND ASC CSV FOR INT KEY NOT OFF SET TBL TOP AS BY IF
 %token IN IS OF ON OR TO
-%token DATABASE DATABASES USE READ QUIT MAX MIN AVG SUM
+%token DATABASE DATABASES CHECK USE READ QUIT MAX MIN AVG SUM
 
 
 /*********************************
@@ -180,7 +182,7 @@ int yyerror(YYLTYPE* llocp, SQLParserResult** result, yyscan_t scanner, const ch
 %type <update_stmt> update_statement
 %type <drop_stmt>	drop_statement
 %type <ival>        width
-%type <sval> 		table_name opt_alias alias file_path primary_key_def
+%type <sval> 		table_name opt_alias alias file_path opt_primary_key_def
 %type <bval> 		opt_not_exists opt_distinct null_type
 %type <uval>		import_file_type opt_join_type column_type
 %type <table> 		from_clause table_ref table_ref_atomic table_ref_name
@@ -194,9 +196,11 @@ int yyerror(YYLTYPE* llocp, SQLParserResult** result, yyscan_t scanner, const ch
 %type <column_t>	column_def
 %type <update_t>	update_clause
 %type <group_t>		opt_group
+%type <check_t>		opt_check_def
+%type <select_type>	opt_select_method
 
 %type <str_vec>		ident_commalist opt_column_list
-%type <expr_vec> 	expr_list select_list literal_list my_where_clause opt_where
+%type <expr_vec> 	expr_list opt_select_list literal_list my_where_clause opt_where
 %type <literal_list_vec> literal_lists
 %type <table_vec> 	table_ref_commalist
 %type <update_vec>	update_clause_commalist
@@ -354,19 +358,49 @@ file_path:
  * CREATE TABLE students FROM TBL FILE 'test/students.tbl'
  ******************************/
 create_statement:
+	
 		CREATE TABLE opt_not_exists table_name '(' column_def_commalist ')' {
-			$$ = new CreateStatement(CreateStatement::kTable);
-			$$->ifNotExists = $3;
-			$$->tableName = $4;
-			$$->columns = $6;
-		}
-	|	CREATE TABLE opt_not_exists table_name '(' column_def_commalist ',' primary_key_def ')' {
             $$ = new CreateStatement(CreateStatement::kTable);
             $$->ifNotExists = $3;
             $$->tableName = $4;
             $$->columns = $6;
-            $$->primaryKey = $8;
         }
+	|	CREATE TABLE opt_not_exists table_name '(' column_def_commalist opt_primary_key_def ')' {
+            $$ = new CreateStatement(CreateStatement::kTable);
+            $$->ifNotExists = $3;
+            $$->tableName = $4;
+            $$->columns = $6;
+            $$->primaryKey = $7;
+        }
+	|	CREATE TABLE opt_not_exists table_name '(' column_def_commalist opt_check_def opt_primary_key_def ')' {
+            $$ = new CreateStatement(CreateStatement::kTable);
+            $$->ifNotExists = $3;
+            $$->tableName = $4;
+            $$->columns = $6;
+			$$->checkIn = $7;
+			$$->primaryKey = $8;
+        }
+	|	CREATE TABLE opt_not_exists table_name '(' column_def_commalist opt_check_def ')' {
+            $$ = new CreateStatement(CreateStatement::kTable);
+            $$->ifNotExists = $3;
+            $$->tableName = $4;
+            $$->columns = $6;
+			$$->checkIn = $7;
+        }
+	;
+
+opt_check_def:
+		',' CHECK '(' IDENTIFIER IN '(' expr_list ')' ')' {
+			$$ = new CheckInDef();
+			$$->relName = $4;
+			$$->checkInVec = $7;
+		}
+	;
+
+opt_primary_key_def:
+		',' PRIMARY KEY '(' IDENTIFIER ')' {
+			$$ = $5;
+		}
 	;
 
 opt_not_exists:
@@ -392,6 +426,7 @@ width:
     |   /**empty**/ {
             $$ = 0;
         }
+	;
 
 null_type:
         NOT NULL {
@@ -400,12 +435,7 @@ null_type:
     |   /**empty**/ {
              $$ = false;
          }
-
-primary_key_def:
-        PRIMARY KEY '(' IDENTIFIER ')' {
-           $$ = $4;
-        }
-    ;
+	;
 
 column_type:
 		INT { $$ = ColumnDefinition::DINT; }
@@ -544,7 +574,7 @@ set_operator:
 	;
 
 select_clause:
-		SELECT opt_distinct select_list from_clause opt_where opt_group {
+		SELECT opt_distinct opt_select_list from_clause opt_where opt_group {
 			$$ = new SelectStatement(SelectStatement::NO_OP);
 			$$->selectDistinct = $2;
 			$$->selectList = $3;
@@ -552,38 +582,24 @@ select_clause:
 			$$->whereClause = $5;
 			$$->groupBy = $6;
 		}
-	|	SELECT opt_distinct SUM '(' select_list ')' from_clause opt_where opt_group {
-			$$ = new SelectStatement(SelectStatement::SUM_OP);
+	|	
+	SELECT opt_distinct expr_list ',' opt_select_method expr from_clause opt_where opt_group {
+			$$ = new SelectStatement($5);
 			$$->selectDistinct = $2;
-			$$->selectList = $5;
+			$$->selectList = new std::vector<Expr*>();
+			$$->selectList->push_back((*$3)[0]);
+			$$->selectList->push_back($6);
 			$$->fromTable = $7;
 			$$->whereClause = $8;
 			$$->groupBy = $9;
 		}
-	|	SELECT opt_distinct AVG '(' select_list ')' from_clause opt_where opt_group {
-			$$ = new SelectStatement(SelectStatement::AVG_OP);
-			$$->selectDistinct = $2;
-			$$->selectList = $5;
-			$$->fromTable = $7;
-			$$->whereClause = $8;
-			$$->groupBy = $9;
-		}
-	|	SELECT opt_distinct MAX '(' select_list ')' from_clause opt_where opt_group {
-			$$ = new SelectStatement(SelectStatement::MAX_OP);
-			$$->selectDistinct = $2;
-			$$->selectList = $5;
-			$$->fromTable = $7;
-			$$->whereClause = $8;
-			$$->groupBy = $9;
-		}
-	|	SELECT opt_distinct MIN '(' select_list ')' from_clause opt_where opt_group {
-			$$ = new SelectStatement(SelectStatement::MIN_OP);
-			$$->selectDistinct = $2;
-			$$->selectList = $5;
-			$$->fromTable = $7;
-			$$->whereClause = $8;
-			$$->groupBy = $9;
-		}
+	;
+
+opt_select_method:
+		MAX {$$ = SelectStatement::MAX_OP;}
+	|	MIN {$$ = SelectStatement::MIN_OP;}
+	|	AVG {$$ = SelectStatement::AVG_OP;}
+	|	SUM {$$ = SelectStatement::SUM_OP;}
 	;
 
 opt_distinct:
@@ -591,7 +607,7 @@ opt_distinct:
 	|	/* empty */ { $$ = false; }
 	;
 
-select_list:
+opt_select_list:
 		expr_list
 	;
 

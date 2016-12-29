@@ -1871,16 +1871,6 @@ bool QL_Manager::isSatisifyConditions(int attrCount, AttrInfo * attributes, RM_F
 				string givenValue = string((char*)(conditions[j].rhsValue.data));
 				if (conditions[j].op == CompOp::LIKE_OP)
 				{
-					// replace other regex identifier
-					vector<string> regexIds = { "\\", "(", ")", "?", ":", "[", "]", "*", "+","^", "$", "|" };
-					for (string regexId : regexIds)
-					{
-						ReplaceAll(givenValue, regexId, "\\" + regexId);
-					}
-					// translate sql to regex
-					ReplaceAll(givenValue, "_", "(.)");
-					ReplaceAll(givenValue, "%", "(.)*");
-					// find match
 					satisfied = regex_match(recordValue, regex(givenValue));
 				}
 				else if (!satisfiesCondition(recordValue, givenValue, conditions[j].op))
@@ -1926,17 +1916,6 @@ int QL_Manager::findCorAttr(int attrCount, const AttrInfo * attributes, const ch
 	else
 		return -1;
 }
-
-std::string QL_Manager::ReplaceAll(std::string & str, const std::string & from, const std::string & to)
-{
-	size_t start_pos = 0;
-	while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
-		str.replace(start_pos, from.length(), to);
-		start_pos += to.length(); // Handles case where 'to' is a substring of 'from'
-	}
-	return str;
-}
-
 
 RC QL_Manager::findCorAttr(int& indexRelation, int& indexAttr, int* attrCount, AttrInfo ** attributes, Condition & condition, vector<string> relations, bool right)
 {
