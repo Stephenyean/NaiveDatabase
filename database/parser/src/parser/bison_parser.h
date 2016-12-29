@@ -171,7 +171,7 @@ extern int hsql_debug;
     SQL_PART = 348,
     SQL_PLAN = 349,
     SQL_SHOW = 350,
-    SQL_TEXT = 351,
+    SQL_CHAR = 351,
     SQL_TIME = 352,
     SQL_VIEW = 353,
     SQL_WITH = 354,
@@ -198,18 +198,19 @@ extern int hsql_debug;
     SQL_OR = 375,
     SQL_TO = 376,
     SQL_DATABASE = 377,
-    SQL_USE = 378,
-    SQL_READ = 379,
-    SQL_QUIT = 380,
-    SQL_MAX = 381,
-    SQL_MIN = 382,
-    SQL_AVG = 383,
-    SQL_SUM = 384,
-    SQL_EQUALS = 385,
-    SQL_LESS = 386,
-    SQL_GREATER = 387,
-    SQL_NOTNULL = 388,
-    SQL_UMINUS = 389
+    SQL_DATABASES = 378,
+    SQL_USE = 379,
+    SQL_READ = 380,
+    SQL_QUIT = 381,
+    SQL_MAX = 382,
+    SQL_MIN = 383,
+    SQL_AVG = 384,
+    SQL_SUM = 385,
+    SQL_EQUALS = 386,
+    SQL_LESS = 387,
+    SQL_GREATER = 388,
+    SQL_NOTNULL = 389,
+    SQL_UMINUS = 390
   };
 #endif
 
@@ -256,7 +257,7 @@ union HSQL_STYPE
 	std::vector<hsql::Expr*>* expr_vec;
 	std::vector<std::vector<hsql::Expr*>*>* literal_list_vec;
 
-#line 260 "bison_parser.h" /* yacc.c:1909  */
+#line 261 "bison_parser.h" /* yacc.c:1909  */
 };
 # define HSQL_STYPE_IS_TRIVIAL 1
 # define HSQL_STYPE_IS_DECLARED 1

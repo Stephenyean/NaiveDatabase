@@ -338,80 +338,6 @@ void Parser::processUpdate(hsql::UpdateStatement* stmt){
 
 	qlm->Update(relName, updAttr, bIsValue, rhsRelAttr, rhsValue, conditions);
 
-	/*
-	Condition myCondition[10000];
-	for(int i=0; i<stmt->where->size(); i++){
-		//condition
-		tempCondition.lhsAttr = stmt->updates[i]->column;
-		tempCondition.op = NO_OP;		//default no comparison(when value is a null pointer)
-		switch(stmt->updates[i]->value->op_type){
-			case(NOT_EQUALS):{
-				tempCondition.op = NE_OP;
-				break;
-			}
-			case(LESS_EQ):{
-				tempCondition.op = LE_OP;
-				break;
-			}
-			case(GREATER_EQ):{
-				tempCondition.op = GE_OP;
-				break;
-			}
-			default:
-				break;
-		}
-		switch(stmt->updates[i]->value->op_char){
-			case('='):{
-				tempCondition.op = EQ_OP;
-				break;
-			}
-			case('<'):{
-				tempCondition.op = LT_OP;
-				break;
-			}
-			case('>'):{
-				tempCondition.op = GT_OP;
-				break;
-			}
-		}
-		tempCondition.bRhsIsAttr = FALSE;
-		tempCondition.rhsAttr = NULL;
-		tempCondition.rhsValue = stmt->updates[i]->value->expr2->fval;
-		//updAttr
-		
-	}
-	for(int i=0; i<stmt->updates->size(); i++){
-		RelAttr myUpdAttr;
-		myUpdAttr.relName = stmt->table;
-		myUpdAttr.attrName = stmt->updates[i]->column;
-		//rhsRelAttr
-		RelAttr myRhsRelAttr;
-		myRhsRelAttr.relName = stmt->table;
-		myRhsRelAttr.attrName = stmt->updates[i]->column;
-		//rhsValue
-		Value myRhsValue;
-		switch(stmt->updates[i]->value->type){
-			case(kExprLiteralInt):{
-				myRhsValue.type = DINT;
-				myRhsValue.data = stmt->updates[i]->value->val;
-				break;
-			}
-			case(kExprLiteralFloat):{
-				myRhsValue.type = DFLOAT;
-				myRhsValue.data = stmt->updates[i]->value->value;
-				break;
-			}
-			case(kExprLiteralString):{
-				myRhsValue.type = STRING;
-				myRhsValue.data = stmt->updates[i]->value->value;
-				break;
-			}
-			default:
-				break;
-		}
-		qlm->Update(stmt->table, myUpdAttr, 1, myRhsRelAttr, myRhsValue, 1,myCondition);
-	}
-	*/
 }
 
 void Parser::processSelect(hsql::SelectStatement* stmt){
@@ -472,7 +398,7 @@ void Parser::processSelect(hsql::SelectStatement* stmt){
 		relations.push_back(relName);
 	nRelations = relations.size();
 	nConditions = conditions.size();
-	qlm->Select(nSelAttrs, mySelAttrs, nRelations, relations, nConditions, conditions);
+	qlm->Select(nSelAttrs, mySelAttrs, nRelations, relations, nConditions, conditions, stmt);
 }
 
 void Parser::packConditions(const char * relName, std::vector<hsql::Expr*>* whereClause, std::vector<Condition> & conditions)

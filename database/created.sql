@@ -22,9 +22,10 @@ CREATE TABLE book (
 
 CREATE TABLE customer (
   id int(10) NOT NULL,
-  name varchar(25) NOT NULL,
-  gender varchar(1),
-  PRIMARY KEY  (id)
+  name char(25) NOT NULL,
+  gender char(1) NOT NULL,
+  CHECK (gender in('F','M')),
+  PRIMARY KEY (id)
 );
 
 CREATE TABLE orders (
@@ -55,3 +56,5 @@ INSERT INTO book VALUES
  (200019,'Der Pferdefl??sterer.','John Grisham',103834,6335,2303),
  (200020,'Snowboarding to Nirvana','Toni Morrison',101085,8670,1524),
  (200021,'Boys and Girls Together','The Onion',102228,3546,1375);
+
+ INSERT INTO book VALUES (200001,'Marias Diary (Plus S.)','Mark P. O. Morford',100082,5991,2530);
