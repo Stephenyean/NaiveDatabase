@@ -126,7 +126,7 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 	for (int i = 0; i < attrCount; i++)
 	{
 		int copyLength = 4;
-		if (attrInfo[i].attrType == STRING || attrInfo[i].attrType == VARCHAR)
+		if (attrInfo[i].attrType == STRING || attrInfo[i].attrType == DDATE || attrInfo[i].attrType == VARCHAR)
 			copyLength = strlen((char*)values[i].data) + 1;
 		memcpy(pData + offset, values[i].data, copyLength);
 		offset += attrInfo[i].attrLength;
@@ -473,7 +473,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			memset(data, 0, conditionAttrLength);
 			
 			int copyLength = 4;
-			if (conditions[iCondition].rhsValue.type == STRING || conditions[iCondition].rhsValue.type == VARCHAR)
+			if (conditions[iCondition].rhsValue.type == STRING || conditions[iCondition].rhsValue.type == DDATE || conditions[iCondition].rhsValue.type == VARCHAR)
 				copyLength = strlen((char*)conditions[iCondition].rhsValue.data) + 1;
 			memcpy((void*)data, (void*)conditions[iCondition].rhsValue.data, copyLength);
 			if (rc = scan1.OpenScan(ixIndexHandle, conditions[iCondition].op, data))
@@ -590,7 +590,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 				}
 			}
 			if (print)
-				printNames.push_back(string(attrInfo[indexRelate][i].attrName));
+				printNames.push_back(string(attrInfo[1 - indexRelate][i].attrName));
 		}
 		results.push_back(printNames);
 		if (conditions[iCondition].bRhsIsAttr == 1 && conditions[iCondition].op == CompOp::EQ_OP)
@@ -934,7 +934,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			char* data = new char[conditionAttrLength];
 			memset(data, 0, conditionAttrLength);
 			int copyLength = 4;
-			if (conditions[iCondition].rhsValue.type == STRING || conditions[iCondition].rhsValue.type == VARCHAR)
+			if (conditions[iCondition].rhsValue.type == STRING || conditions[iCondition].rhsValue.type == DDATE || conditions[iCondition].rhsValue.type == VARCHAR)
 				copyLength = strlen((char*)conditions[iCondition].rhsValue.data) + 1;
 			memcpy((void*)data, (void*)conditions[iCondition].rhsValue.data, copyLength);
 			if (rc = scan1.OpenScan(ixIndexHandle, conditions[iCondition].op, data))
@@ -1127,13 +1127,96 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			}
 		}
 	}
+	else if (nRelations == 3)
+	{
+		for (auto condition : conditions)
+		{
+			if (condition.bRhsIsAttr && condition.op != CompOp::EQ_OP)
+			{
+				cout << "Don't support such Operation\n";
+				return ERROR;
+			}
+		}
+
+	}
 
 	for (int i = 0; i < nRelations; i++)
 	{
 		rmm->closeFile(rmFileHandle[i]);
 	}
-	
-	for (auto rv : results)
+	vector<vector<string>> outputs;
+	outputs.push_back(results[0]);
+	if (stmt->groupBy == nullptr)
+	{
+		if (results.size() > 1)
+		{
+			if (stmt->type != hsql::SelectStatement::SelectType::NO_OP)
+			{
+				if (nSelAttrs != 1)
+				{
+					cout << "Error Using Avg\n";
+					return ERROR;
+				}
+			}
+			switch (stmt->type)
+			{
+			case(hsql::SelectStatement::SelectType::NO_OP):
+			{
+				for (int i = 1; i < results.size(); i++)
+					outputs.push_back(results[i]);
+				break;
+			}
+			case(hsql::SelectStatement::SelectType::SUM_OP):
+			{
+				double sum = 0;
+				for (int i = 1; i < results.size(); i++)
+					sum += std::atoi(results[i][0].c_str());
+				outputs.push_back(vector<string>{std::to_string(sum)});
+				break;
+			}
+			case(hsql::SelectStatement::SelectType::MAX_OP):
+			{
+				int localMax = std::atoi(results[1][0].c_str());
+				for (int i = 2; i < results.size(); i++)
+					localMax = std::max(localMax, std::atoi(results[i][0].c_str()));
+				outputs.push_back(vector<string>{std::to_string(localMax)});
+				break;
+			}
+			case(hsql::SelectStatement::SelectType::MIN_OP):
+			{
+				int localMin = std::atoi(results[1][0].c_str());
+				for (int i = 2; i < results.size(); i++)
+					localMin = std::min(localMin, std::atoi(results[i][0].c_str()));
+				outputs.push_back(vector<string>{std::to_string(localMin)});
+				break;
+			}
+			case(hsql::SelectStatement::SelectType::AVG_OP):
+			{
+				double sum = 0;
+				for (int i = 1; i < results.size(); i++)
+					sum += std::atoi(results[i][0].c_str());
+				outputs.push_back(vector<string>{std::to_string(sum / (results.size() - 1))});
+				break;
+			}
+			}
+		}
+	}
+	else
+	{
+		if (stmt->groupBy->columns->size() != 1 && results[0].size() != 2)
+		{
+			cout << "Error using Group By\n";
+			return ERROR;
+		}
+
+		vector<string> selectCol = results[0];
+		int byCol = 0;
+		//for (int i = 0; i < 2; i++)
+		//{
+		//	if(results[i] == stmt->selectDistinct)
+		//}
+	}
+	for (auto rv : outputs)
 	{
 		for (auto rec : rv)
 		{
@@ -1263,7 +1346,7 @@ RC QL_Manager::Delete(const char *relName,            // relation to delete from
 	char* data = new char[conditionAttrLength];
 	memset(data, 0, conditionAttrLength);
 	int copyLength = 4;
-	if (conditions[iCondition].rhsValue.type == STRING || conditions[iCondition].rhsValue.type == VARCHAR)
+	if (conditions[iCondition].rhsValue.type == STRING || conditions[iCondition].rhsValue.type  == DDATE || conditions[iCondition].rhsValue.type == VARCHAR)
 		copyLength = strlen((char*)conditions[iCondition].rhsValue.data)+1;
 	memcpy((void*)data, (void*)conditions[iCondition].rhsValue.data, copyLength);
 	if (rc = ixScan.OpenScan(ixIndexHandle, conditions[iCondition].op, data))
@@ -1323,7 +1406,7 @@ RC QL_Manager::Update(const char * relName, const std::vector<RelAttr>& updAttr,
 			{
 				attrError = true;
 			}
-			else if ((rhsValue[i].type == STRING || rhsValue[i].type == VARCHAR) && !attributes[i].attrType == STRING)
+			else if ((rhsValue[i].type == STRING || rhsValue[i].type == DDATE || rhsValue[i].type == VARCHAR) && !(attributes[i].attrType == STRING))
 			{
 				attrError = true;
 			}

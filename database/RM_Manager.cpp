@@ -549,7 +549,7 @@ RC RM_FileScan::GetNextRec(RM_Record &rec)
 				else
 					currentSlot++;
 			}
-			else if (attrtype == STRING || attrtype == VARCHAR)
+			else if (attrtype == STRING || attrtype == DDATE || attrtype == VARCHAR)
 			{
 				string recordValue(data);
 				string givenValue((char*)value);
