@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <set>
 #include <algorithm>
+#include <iomanip>
+
 QL_Manager::QL_Manager(SM_Manager* smm, IX_Manager* ixm, RM_Manager* rmm)
 {
 	this->smm = smm;
@@ -22,24 +24,24 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 	if (relName == NULL)
 	{
 		//auto e = new vector<int>;
-		cout << "relation is null\n";
+		std::cout << "relation is null\n";
 		return QL_NULL_ERROR;
 	}
 
 	if (!smm->IsTableExists(relName))
 	{
-		cout << "Table doesn't exist\n";
+		std::cout << "Table doesn't exist\n";
 		return QL_TABLE_NOT_EXIST_ERROR;
 	}
 
 	if (verbose == 2) {
-		cout << "verbose : " << verbose << endl;
+		std::cout << "verbose : " << verbose << endl;
 		int i;
-		cout << "Insert\n";
-		cout << "   relName = " << relName << "\n";
-		cout << "   nValues = " << nValues << "\n";
+		std::cout << "Insert\n";
+		std::cout << "   relName = " << relName << "\n";
+		std::cout << "   nValues = " << nValues << "\n";
 		for (i = 0; i < nValues; i++)
-			cout << "   values[" << i << "]:" << values[i].data << "\n";
+			std::cout << "   values[" << i << "]:" << values[i].data << "\n";
 	}
 
 	RC rc;
@@ -48,7 +50,7 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 	int primaryIndex;
 	if ((rc = smm->GetTableAttrInfo(smm->getWork_Database().c_str(), relName, attrCount, attrInfo, primaryIndex)))
 	{
-		cout << "Error to get Table Attr Info\n";
+		std::cout << "Error to get Table Attr Info\n";
 		return rc;
 	}
 
@@ -60,19 +62,19 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 				continue;
 			if (attrInfo[i].attrType == VARCHAR && values[i].type == STRING)
 				continue;
-			cout << "Type Error\n";
+			std::cout << "Type Error\n";
 			return ERROR;
 		}
 		if (attrInfo[i].notnull && (values[i].type == AttrType::NUL))
 		{
-			cout << attrInfo[i].attrName << " shouldn't be null" << endl;
+			std::cout << attrInfo[i].attrName << " shouldn't be null" << endl;
 			return ERROR;
 		}
 	}
 	
 	if (!(attrCount == nValues))
 	{
-		cout << "arguments not enough\n";
+		std::cout << "arguments not enough\n";
 		return QL_INCORRECT_ATTR_COUNT;
 	}
 
@@ -80,7 +82,7 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 	string fileName = smm->getWork_Database() + "\\" + relName;
 	if ((rc = rmm->openFile(fileName.c_str(), rmFileHandle)))
 	{
-		cout << "Error to open table " << relName << endl;
+		std::cout << "Error to open table " << relName << endl;
 		return rc;
 	}
 
@@ -94,7 +96,7 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 		recordSize += attrInfo[i].attrLength;
 		if ((rc = ixm->OpenIndex(indexFileName.c_str(), i, ixIndexHandle[i])))
 		{
-			cout << "Error to open index " << i << endl;
+			std::cout << "Error to open index " << i << endl;
 			return rc;
 		}
 	}
@@ -104,7 +106,7 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 		IX_IndexScan scan;
 		if ((rc = scan.OpenScan(ixIndexHandle[primaryIndex], CompOp::EQ_OP, values[primaryIndex].data)) == OK)
 		{
-			cout << "Duplicate Primary Key\n";
+			std::cout << "Duplicate Primary Key\n";
 			return ERROR;
 		}
 		scan.CloseScan();
@@ -133,7 +135,7 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 	RID rid;
 	if (rc = rmFileHandle.insertRec(pData, rid, nullValues))
 	{
-		cout << "Insert record Error \n";
+		std::cout << "Insert record Error \n";
 		return rc;
 	}
 
@@ -158,7 +160,7 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 		}
 		if (rc = ixIndexHandle[i].InsertEntry(values[i].data, rid))
 		{
-			cout << "Insert index Error " << i << endl;
+			std::cout << "Insert index Error " << i << endl;
 			return rc;
 		}
 	}
@@ -186,12 +188,13 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 						int           nRelations,       // # relations in From clause
 						vector<string> relations, // relations in From clause
 						int           nConditions,      // # conditions in Where clause
-						vector<Condition> conditions)  // conditions in Where clause
+						vector<Condition> conditions,  // conditions in Where clause
+						hsql::SelectStatement * stmt)
 {
 	// judge if database is open
 	if (smm->getWork_Database().size() <= 0)
 	{
-		cout << "Database is not open\n";
+		std::cout << "Database is not open\n";
 		return QL_DATABASE_NOT_OPEN;
 	}
 
@@ -200,12 +203,12 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 	{
 		if (relations[i].size() <=0)
 		{
-			cout << "table is NULL\n";
+			std::cout << "table is NULL\n";
 			return QL_NULL_ERROR;
 		}
 		if (!smm->IsTableExists(relations[i]))
 		{
-			cout << "table not exist" << endl;
+			std::cout << "table not exist" << endl;
 			return QL_TABLE_NOT_EXIST_ERROR;
 		}
 	}
@@ -218,7 +221,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 	{
 		if ((rc = smm->GetTableAttrInfo(smm->getWork_Database().c_str(), relations[i].c_str(), attrCount[i], attrInfo[i])))
 		{
-			cout << "Error to get Table Attr Info\n";
+			std::cout << "Error to get Table Attr Info\n";
 			return rc;
 		}
 	}
@@ -241,6 +244,10 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 		nSelAttrs++;
 	}
 
+	/*if (type != hsql::SelectStatement::SelectType::NO_OP)
+	{
+		assert(nSelAttrs == 1);
+	}*/
 
 	// judge if attrName exists
 	for (int i = 0; i < nSelAttrs; i++)
@@ -262,7 +269,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 		}
 		if (!found)
 		{
-			cout << "AtrrName Error\n";
+			std::cout << "AtrrName Error\n";
 			return QL_INCORRECT_ATTR_NAME;
 		}
 	}
@@ -279,6 +286,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 
 	bool foundCondition = false;
 	int iCondition = -1;
+	vector<vector<string>> results;
 
 	//no condition
 	if (nConditions == 0)
@@ -380,15 +388,32 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 	int indexRelate2, indexAttr2;
 	IX_IndexScan scan1;
 	IX_IndexScan scan2;
+
 	if (nRelations == 1)
 	{
+		vector<string> printNames;
+		for (int i = 0; i < attrCount[0]; i++)
+		{
+			bool print = false;
+			for (auto e : selAttrs)
+			{
+				if (relations[0] == string(e.relName) && string(attrInfo[0][i].attrName) == string(e.attrName))
+				{
+					print = true;
+					break;
+				}
+			}
+			if (print)
+				printNames.push_back(string(attrInfo[0][i].attrName));
+		}
+		results.push_back(printNames);
 		if (conditions[iCondition].bRhsIsAttr == 1)
 		{
 			RM_FileScan rmScan;
 			void * value = (void*)(new int[1]);
 			if (rc = rmScan.OpenScan(rmFileHandle[0], attrInfo[0][0].attrType, attrInfo[0][0].attrLength, 0, CompOp::NO_OP, value))
 			{
-				cout << "Error to open rmscan \n";
+				std::cout << "Error to open rmscan \n";
 				return ERROR;
 			}
 
@@ -397,17 +422,18 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			while (! rmScan.GetNextRec(rec))
 			{
 				bool satisfied = true;
+				vector<string> result;
 				for (int i = 0; i < conditions.size(); i++)
 				{
 
 					if (rc = findCorAttr(indexRelate, indexAttr, attrCount, attrInfo, conditions[i], relations, false))
 					{
-						cout << "Error to find correct attribute" << endl;
+						std::cout << "Error to find correct attribute" << endl;
 						return ERROR;
 					}
 					if (rc = findCorAttr(indexRelate2, indexAttr2, attrCount, attrInfo, conditions[i], relations, true))
 					{
-						cout << "Error to find correct attribute" << endl;
+						std::cout << "Error to find correct attribute" << endl;
 						return ERROR;
 					}
 
@@ -421,7 +447,10 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 				}
 
 				if (satisfied)
-					print(rec, attrCount, 0, selAttrs, relations, attrInfo);
+				{
+					print(rec, attrCount, 0, selAttrs, relations, attrInfo, result);
+					results.push_back(result);
+				}
 			}
 		}
 		else
@@ -429,14 +458,14 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			
 			if (rc = findCorAttr(indexRelate, indexAttr, attrCount, attrInfo, conditions[iCondition], relations, false))
 			{
-				cout << "Error to find correct attribute" << endl;
+				std::cout << "Error to find correct attribute" << endl;
 				return ERROR;
 			}
 
 			string indexFileName = smm->getWork_Database() + "\\" + relations[0];
 			if (rc = ixm->OpenIndex(indexFileName.c_str(), indexAttr, ixIndexHandle))
 			{
-				cout << "Error to open Index " << indexAttr << endl;
+				std::cout << "Error to open Index " << indexAttr << endl;
 				return ERROR;
 			}
 			int conditionAttrLength = attrInfo[0][indexAttr].attrLength;
@@ -449,21 +478,27 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			memcpy((void*)data, (void*)conditions[iCondition].rhsValue.data, copyLength);
 			if (rc = scan1.OpenScan(ixIndexHandle, conditions[iCondition].op, data))
 			{
-				cout << "Error to Open scan\n" << endl;
+				std::cout << "Error to Open scan\n" << endl;
 				return rc;
 			}
 			RID rid;
 			RM_Record rec;
 			while (!(rc = scan1.GetNextEntry(rid)))
 			{
+				vector<string> result;
 				if (rc = rmFileHandle[0].getRec(rid, rec))
 				{
-					cout << "Error to get Record\n";
+					std::cout << "Error to get Record\n";
 					return rc;
 				}
 				bool satisfied = true;
 				for (int j = 0; j < nConditions; j++)
 				{
+					if (rc = findCorAttr(indexRelate, indexAttr, attrCount, attrInfo, conditions[j], relations, false))
+					{
+						std::cout << "Error to find correct attribute" << endl;
+						return ERROR;
+					}
 					if (conditions[j].op == ISNULL_OP)
 					{
 						bool* nullValues = (bool*)rec.pData;
@@ -493,7 +528,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 							int offset2 = getOffset(indexRelate2, indexAttr2, attrInfo);
 							if (rc = findCorAttr(indexRelate2, indexAttr2, attrCount, attrInfo, conditions[j], relations, true))
 							{
-								cout << "Error to find correct attribute" << endl;
+								std::cout << "Error to find correct attribute" << endl;
 								return ERROR;
 							}
 							if (!isRecordSatisfied((void*)(rec.pData + attrCount[0] + offset1), conditions[j].op, (void*)(rec.pData + attrCount[0] + offset2), attrInfo[0][indexAttr].attrType))
@@ -513,47 +548,85 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 						break;
 				}
 				if (satisfied)
-					print(rec, attrCount, 0, selAttrs, relations, attrInfo);
+				{
+					print(rec, attrCount, 0, selAttrs, relations, attrInfo, result);
+					results.push_back(result);
+				}
 			}
 
 		}
 	}
 	else if (nRelations == 2)
 	{
+		if (rc = findCorAttr(indexRelate, indexAttr, attrCount, attrInfo, conditions[iCondition], relations, false))
+		{
+			std::cout << "Error to find correct attribute" << endl;
+			return ERROR;
+		}
+		vector<string> printNames;
+		for (int i = 0; i < attrCount[indexRelate]; i++)
+		{
+			bool print = false;
+			for (auto e : selAttrs)
+			{
+				if (relations[indexRelate] == string(e.relName) && string(attrInfo[indexRelate][i].attrName) == string(e.attrName))
+				{
+					print = true;
+					break;
+				}
+			}
+			if (print)
+				printNames.push_back(string(attrInfo[indexRelate][i].attrName));
+		}
+		for (int i = 0; i < attrCount[1 - indexRelate]; i++)
+		{
+			bool print = false;
+			for (auto e : selAttrs)
+			{
+				if (relations[1 - indexRelate] == string(e.relName) && string(attrInfo[1 - indexRelate][i].attrName) == string(e.attrName))
+				{
+					print = true;
+					break;
+				}
+			}
+			if (print)
+				printNames.push_back(string(attrInfo[indexRelate][i].attrName));
+		}
+		results.push_back(printNames);
 		if (conditions[iCondition].bRhsIsAttr == 1 && conditions[iCondition].op == CompOp::EQ_OP)
 		{
 			set<pair<RID, RID>> recV;
 			{
 				if (rc = findCorAttr(indexRelate, indexAttr, attrCount, attrInfo, conditions[iCondition], relations, false))
 				{
-					cout << "Error to find correct attribute" << endl;
+					std::cout << "Error to find correct attribute" << endl;
 					return ERROR;
 				}
 				if (rc = findCorAttr(indexRelate2, indexAttr2, attrCount, attrInfo, conditions[iCondition], relations, true))
 				{
-					cout << "Error to find correct attribute" << endl;
+					std::cout << "Error to find correct attribute" << endl;
 					return ERROR;
 				}
 				string indexFileName1 = smm->getWork_Database() + "\\" + relations[indexRelate];
 				if (rc = ixm->OpenIndex(indexFileName1.c_str(), indexAttr, ixIndexHandle))
 				{
-					cout << "Error to open Index " << indexAttr << endl;
+					std::cout << "Error to open Index " << indexAttr << endl;
 					return ERROR;
 				}
 				string indexFileName = smm->getWork_Database() + "\\" + relations[indexRelate2];
 				if (rc = ixm->OpenIndex(indexFileName.c_str(), indexAttr2, ixIndexHandle2))
 				{
-					cout << "Error to open Index " << indexAttr2 << endl;
+					std::cout << "Error to open Index " << indexAttr2 << endl;
 					return ERROR;
 				}
 				if (rc = scan1.OpenScan(ixIndexHandle, NO_OP, (void*)(new int[1])))
 				{
-					cout << "Error to open ixscan1 \n";
+					std::cout << "Error to open ixscan1 \n";
 					return ERROR;
 				}
 				if (rc = scan2.OpenScan(ixIndexHandle2, NO_OP, (void*)(new int[1])))
 				{
-					cout << "Error to open ixscan2 \n";
+					std::cout << "Error to open ixscan2 \n";
 					return ERROR;
 				}
 				RID rid1, rid2;
@@ -562,19 +635,19 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 				int offset2 = getOffset(indexRelate2, indexAttr2, attrInfo);
 				if ((rc = scan1.GetNextEntry(rid1)))
 				{
-					cout << "Table 1 empty\n" << endl;
+					std::cout << "Table 1 empty\n" << endl;
 				}
 				if (rc = rmFileHandle[indexRelate].getRec(rid1, rec1))
 				{
-					cout << "Error to get record\n";
+					std::cout << "Error to get record\n";
 				}
 				if ((rc = scan2.GetNextEntry(rid2)))
 				{
-					cout << "Table 2 empty\n" << endl;
+					std::cout << "Table 2 empty\n" << endl;
 				}
 				if (rc = rmFileHandle[indexRelate2].getRec(rid2, rec2))
 				{
-					cout << "Error to get record\n";
+					std::cout << "Error to get record\n";
 				}
 				int judge = 0;
 				while (true)
@@ -600,7 +673,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 						}
 						if (rc = rmFileHandle[indexRelate].getRec(rid1, rec1))
 						{
-							cout << "Error to get record\n";
+							std::cout << "Error to get record\n";
 						}
 					}
 					else if (judge == -1)
@@ -611,7 +684,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 						}
 						if (rc = rmFileHandle[indexRelate2].getRec(rid2, rec2))
 						{
-							cout << "Error to get record\n";
+							std::cout << "Error to get record\n";
 						}
 					}
 					else
@@ -622,7 +695,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 						}
 						if (rc = rmFileHandle[indexRelate].getRec(rid1, rec1))
 						{
-							cout << "Error to get record\n";
+							std::cout << "Error to get record\n";
 						}
 					}
 				}
@@ -630,34 +703,34 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			{
 				if (rc = findCorAttr(indexRelate, indexAttr, attrCount, attrInfo, conditions[iCondition], relations, false))
 				{
-					cout << "Error to find correct attribute" << endl;
+					std::cout << "Error to find correct attribute" << endl;
 					return ERROR;
 				}
 				if (rc = findCorAttr(indexRelate2, indexAttr2, attrCount, attrInfo, conditions[iCondition], relations, true))
 				{
-					cout << "Error to find correct attribute" << endl;
+					std::cout << "Error to find correct attribute" << endl;
 					return ERROR;
 				}
 				string indexFileName1 = smm->getWork_Database() + "\\" + relations[indexRelate];
 				if (rc = ixm->OpenIndex(indexFileName1.c_str(), indexAttr, ixIndexHandle))
 				{
-					cout << "Error to open Index " << indexAttr << endl;
+					std::cout << "Error to open Index " << indexAttr << endl;
 					return ERROR;
 				}
 				string indexFileName = smm->getWork_Database() + "\\" + relations[indexRelate2];
 				if (rc = ixm->OpenIndex(indexFileName.c_str(), indexAttr2, ixIndexHandle2))
 				{
-					cout << "Error to open Index " << indexAttr2 << endl;
+					std::cout << "Error to open Index " << indexAttr2 << endl;
 					return ERROR;
 				}
 				if (rc = scan1.OpenScan(ixIndexHandle, NO_OP, (void*)(new int[1])))
 				{
-					cout << "Error to open ixscan1 \n";
+					std::cout << "Error to open ixscan1 \n";
 					return ERROR;
 				}
 				if (rc = scan2.OpenScan(ixIndexHandle2, NO_OP, (void*)(new int[1])))
 				{
-					cout << "Error to open ixscan2 \n";
+					std::cout << "Error to open ixscan2 \n";
 					return ERROR;
 				}
 				RID rid1, rid2;
@@ -666,19 +739,19 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 				int offset2 = getOffset(indexRelate2, indexAttr2, attrInfo);
 				if ((rc = scan1.GetNextEntry(rid1)))
 				{
-					cout << "Table 1 empty\n" << endl;
+					std::cout << "Table 1 empty\n" << endl;
 				}
 				if (rc = rmFileHandle[indexRelate].getRec(rid1, rec1))
 				{
-					cout << "Error to get record\n";
+					std::cout << "Error to get record\n";
 				}
 				if ((rc = scan2.GetNextEntry(rid2)))
 				{
-					cout << "Table 2 empty\n" << endl;
+					std::cout << "Table 2 empty\n" << endl;
 				}
 				if (rc = rmFileHandle[indexRelate2].getRec(rid2, rec2))
 				{
-					cout << "Error to get record\n";
+					std::cout << "Error to get record\n";
 				}
 				int judge = 0;
 				while (true)
@@ -704,7 +777,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 						}
 						if (rc = rmFileHandle[indexRelate2].getRec(rid2, rec2))
 						{
-							cout << "Error to get record\n";
+							std::cout << "Error to get record\n";
 						}
 					}
 					else if (judge == -1)
@@ -715,7 +788,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 						}
 						if (rc = rmFileHandle[indexRelate2].getRec(rid2, rec2))
 						{
-							cout << "Error to get record\n";
+							std::cout << "Error to get record\n";
 						}
 					}
 					else
@@ -726,7 +799,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 						}
 						if (rc = rmFileHandle[indexRelate].getRec(rid1, rec1))
 						{
-							cout << "Error to get record\n";
+							std::cout << "Error to get record\n";
 						}
 					}
 				}
@@ -742,12 +815,12 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 					if (i == iCondition) continue;
 					if (rc = findCorAttr(indexRelate, indexAttr, attrCount, attrInfo, conditions[i], relations, false))
 					{
-						cout << "Error to find correct attribute" << endl;
+						std::cout << "Error to find correct attribute" << endl;
 						return ERROR;
 					}
 					if (rc = findCorAttr(indexRelate2, indexAttr2, attrCount, attrInfo, conditions[i], relations, true))
 					{
-						cout << "Error to find correct attribute" << endl;
+						std::cout << "Error to find correct attribute" << endl;
 						return ERROR;
 					}
 					int offset1 = getOffset(indexRelate, indexAttr, attrInfo);
@@ -758,11 +831,12 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 						break;
 					}
 				}
-
+				vector<string> result;
 				if (satisfied)
 				{
-					print(rec1, attrCount, indexRelate, selAttrs, relations, attrInfo);
-					print(rec2, attrCount, indexRelate2, selAttrs, relations, attrInfo);
+					print(rec1, attrCount, indexRelate, selAttrs, relations, attrInfo, result);
+					print(rec2, attrCount, indexRelate2, selAttrs, relations, attrInfo, result);
+					results.push_back(result);
 				}
 			}
 
@@ -775,22 +849,22 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			void * value = (void*)(new int[1]);
 			if (rc = findCorAttr(indexRelate, indexAttr, attrCount, attrInfo, conditions[iCondition], relations, false))
 			{
-				cout << "Error to find correct attribute" << endl;
+				std::cout << "Error to find correct attribute" << endl;
 				return ERROR;
 			}
 			if (rc = findCorAttr(indexRelate2, indexAttr2, attrCount, attrInfo, conditions[iCondition], relations, true))
 			{
-				cout << "Error to find correct attribute" << endl;
+				std::cout << "Error to find correct attribute" << endl;
 				return ERROR;
 			}
 			if (rc = rmScan1.OpenScan(rmFileHandle[indexRelate], attrInfo[indexRelate][indexAttr].attrType, attrInfo[indexRelate][0].attrLength, 0, CompOp::NO_OP, value))
 			{
-				cout << "Error to open rmscan1 \n";
+				std::cout << "Error to open rmscan1 \n";
 				return ERROR;
 			}
 			if (rc = rmScan2.OpenScan(rmFileHandle[indexRelate2], attrInfo[indexRelate2][indexAttr2].attrType, attrInfo[indexRelate2][0].attrLength, 0, CompOp::NO_OP, value))
 			{
-				cout << "Error to open rmscan2 \n";
+				std::cout << "Error to open rmscan2 \n";
 				return ERROR;
 			}
 
@@ -815,12 +889,12 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 					{
 						if (rc = findCorAttr(indexRelate, indexAttr, attrCount, attrInfo, conditions[i], relations, false))
 						{
-							cout << "Error to find correct attribute" << endl;
+							std::cout << "Error to find correct attribute" << endl;
 							return ERROR;
 						}
 						if (rc = findCorAttr(indexRelate2, indexAttr2, attrCount, attrInfo, conditions[i], relations, true))
 						{
-							cout << "Error to find correct attribute" << endl;
+							std::cout << "Error to find correct attribute" << endl;
 							return ERROR;
 						}
 						int offset1 = getOffset(indexRelate, indexAttr, attrInfo);
@@ -831,11 +905,12 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 							break;
 						}
 					}
-
+					vector<string> result;
 					if (satisfied)
 					{
-						print(rec1, attrCount, indexRelate, selAttrs, relations, attrInfo);
-						print(rec2, attrCount, indexRelate2, selAttrs, relations, attrInfo);
+						print(rec1, attrCount, indexRelate, selAttrs, relations, attrInfo, result);
+						print(rec2, attrCount, indexRelate2, selAttrs, relations, attrInfo, result);
+						results.push_back(result);
 					}
 				}
 			}
@@ -845,14 +920,14 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 		{
 			if (rc = findCorAttr(indexRelate, indexAttr, attrCount, attrInfo, conditions[iCondition], relations, false))
 			{
-				cout << "Error to find correct attribute" << endl;
+				std::cout << "Error to find correct attribute" << endl;
 				return ERROR;
 			}
 
 			string indexFileName = smm->getWork_Database() + "\\" + relations[indexRelate];
 			if (rc = ixm->OpenIndex(indexFileName.c_str(), indexAttr, ixIndexHandle))
 			{
-				cout << "Error to open Index " << indexAttr << endl;
+				std::cout << "Error to open Index " << indexAttr << endl;
 				return ERROR;
 			}
 			int conditionAttrLength = attrInfo[indexRelate][indexAttr].attrLength;
@@ -864,7 +939,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			memcpy((void*)data, (void*)conditions[iCondition].rhsValue.data, copyLength);
 			if (rc = scan1.OpenScan(ixIndexHandle, conditions[iCondition].op, data))
 			{
-				cout << "Error to Open scan\n" << endl;
+				std::cout << "Error to Open scan\n" << endl;
 				return rc;
 			}
 			RID rid;
@@ -879,13 +954,13 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			{
 				if (rc = rmFileHandle[realRelate1].getRec(rid, rec1))
 				{
-					cout << "Error to get Record\n";
+					std::cout << "Error to get Record\n";
 					return rc;
 				}
 				RM_FileScan rmScan2;
 				if (rc = rmScan2.OpenScan(rmFileHandle[realRelate2], attrInfo[indexRelate2][indexAttr2].attrType, attrInfo[indexRelate2][0].attrLength, 0, CompOp::NO_OP, new int[1]))
 				{
-					cout << "Error to open rmscan2 \n";
+					std::cout << "Error to open rmscan2 \n";
 					return ERROR;
 				}
 				bool satisfied1 = true;
@@ -920,7 +995,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 					{
 						if (rc = findCorAttr(indexRelate, indexAttr, attrCount, attrInfo, conditions[j], relations, false))
 						{
-							cout << "Error to find correct attribute" << endl;
+							std::cout << "Error to find correct attribute" << endl;
 							return ERROR;
 						}
 						int offset1 = getOffset(indexRelate, indexAttr, attrInfo);
@@ -930,7 +1005,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 
 							if (rc = findCorAttr(indexRelate2, indexAttr2, attrCount, attrInfo, conditions[j], relations, true))
 							{
-								cout << "Error to find correct attribute" << endl;
+								std::cout << "Error to find correct attribute" << endl;
 								return ERROR;
 							}
 							int offset2 = getOffset(indexRelate2, indexAttr2, attrInfo);
@@ -985,7 +1060,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 						{
 							if (rc = findCorAttr(indexRelate, indexAttr, attrCount, attrInfo, conditions[j], relations, false))
 							{
-								cout << "Error to find correct attribute" << endl;
+								std::cout << "Error to find correct attribute" << endl;
 								return ERROR;
 							}
 							int offset1 = getOffset(indexRelate, indexAttr, attrInfo);
@@ -995,7 +1070,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 
 								if (rc = findCorAttr(indexRelate2, indexAttr2, attrCount, attrInfo, conditions[j], relations, true))
 								{
-									cout << "Error to find correct attribute" << endl;
+									std::cout << "Error to find correct attribute" << endl;
 									return ERROR;
 								}
 								int offset2 = getOffset(indexRelate2, indexAttr2, attrInfo);
@@ -1024,12 +1099,12 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 							continue;
 						if (rc = findCorAttr(indexRelate, indexAttr, attrCount, attrInfo, conditions[i], relations, false))
 						{
-							cout << "Error to find correct attribute" << endl;
+							std::cout << "Error to find correct attribute" << endl;
 							return ERROR;
 						}
 						if (rc = findCorAttr(indexRelate2, indexAttr2, attrCount, attrInfo, conditions[i], relations, true))
 						{
-							cout << "Error to find correct attribute" << endl;
+							std::cout << "Error to find correct attribute" << endl;
 							return ERROR;
 						}
 						int offset1 = getOffset(indexRelate, indexAttr, attrInfo);
@@ -1040,398 +1115,32 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 							break;
 						}
 					}
-
+					vector<string> result;
 					if (satisfied)
 					{
-						print(rec1, attrCount, realRelate1, selAttrs, relations, attrInfo);
-						print(rec2, attrCount, realRelate2, selAttrs, relations, attrInfo);
+						print(rec1, attrCount, realRelate1, selAttrs, relations, attrInfo, result);
+						print(rec2, attrCount, realRelate2, selAttrs, relations, attrInfo, result);
+						results.push_back(result);
 					}
 				}
 
 			}
 		}
 	}
-
-
-	/*
-	if (nRelations == 1)
-	{
-
-		bool found = false;
-		int conditionAttrLength;
-		for (int i = 0; i < nRelations; i++)
-		{
-			if (string(relations[i]) == string(conditions[iCondition].lhsAttr.relName))
-			{
-				for (int k = 0; k < attrCount[i]; k++)
-				{
-					if (string(conditions[iCondition].lhsAttr.attrName) == string(attrInfo[i][k].attrName))
-					{
-						string indexFileName = smm->getWork_Database() + "\\" + relations[i];
-						if (rc = ixm->OpenIndex(indexFileName.c_str(), k, ixIndexHandle))
-						{
-							cout << "Error to open Index " << k << endl;
-							return ERROR;
-						}
-						conditionAttrLength = attrInfo[i][k].attrLength;
-						found = true;
-						break;
-					}
-				}
-			}
-			if (found)
-				break;
-		}
-		if (!found)
-		{
-			cout << "Not found the Attribute\n";
-			return QL_INCORRECT_ATTR_TYPE;
-		}
-		
-		char* data = new char[conditionAttrLength];
-		memset(data, 0, conditionAttrLength);
-		int copyLength = 4;
-		if (conditions[iCondition].rhsValue.type == STRING || conditions[iCondition].rhsValue.type == VARCHAR)
-			copyLength = strlen((char*)conditions[iCondition].rhsValue.data) + 1;
-		memcpy((void*)data, (void*)conditions[iCondition].rhsValue.data, copyLength);
-		if (rc = scan.OpenScan(ixIndexHandle, conditions[iCondition].op, data))
-		{
-			cout << "Error to Open scan\n" << endl;
-			return rc;
-		}
-
-		// judge other condition satisified
-		RID rid;
-		RM_Record record;
-		while (!(rc = scan.GetNextEntry(rid)))
-		{
-			if (rc = rmFileHandle[0].getRec(rid, record))
-			{
-				cout << "Error to get Record\n";
-				return rc;
-			}
-			bool satisfied = true;
-			int nRelate = -1, nAttr = -1;
-			for (int j = 0; j < nConditions; j++)
-			{
-				bool found = false;
-				for (int i = 0; i < nRelations; i++)
-				{
-					if (string(conditions[j].lhsAttr.relName) == string(relations[i]))
-					{
-						for (int k = 0; k < attrCount[i]; k++)
-						{
-							if (string(conditions[j].lhsAttr.attrName) == string(attrInfo[i][k].attrName))
-							{
-								nRelate = i;
-								nAttr = k;
-								found = true;
-								break;
-							}
-						}
-					}
-					if (found)
-						break;
-				}
-				if (conditions[j].op == ISNULL_OP)
-				{
-					bool* nullValues = (bool*)record.pData;
-					if (!nullValues[nAttr])
-					{
-						satisfied = false;
-						break;
-					}
-					nullValues = nullptr;
-				}
-				else if (conditions[j].op == NOTNULL_OP)
-				{
-					bool* nullValues = (bool*)record.pData;
-					if (nullValues[nAttr])
-					{
-						satisfied = false;
-						break;
-					}
-					nullValues = nullptr;
-				}
-				else
-				{
-					if (attrInfo[nRelate][nAttr].attrType == AttrType::DINT)
-					{
-						int attrOffset = 0;
-						for (int i = 0; i < nAttr; i++)
-						{
-							attrOffset += attrInfo[nRelate][i].attrLength;
-						}
-						int recordValue = *(int*)(record.pData + attrCount[nRelate] + attrOffset);
-						int givenValue = *((int*)(conditions[j].rhsValue.data));
-						if (!satisfiesCondition(recordValue, givenValue, conditions[j].op))
-						{
-							satisfied = false;
-							break;
-						}
-					}
-					else if (attrInfo[nRelate][nAttr].attrType == AttrType::STRING)
-					{
-						int attrOffset = 0;
-						for (int i = 0; i < nAttr; i++)
-						{
-							attrOffset += attrInfo[nRelate][i].attrLength;
-						}
-						string recordValue = string(record.pData + attrCount[nRelate] + attrOffset);
-						string givenValue = string((char*)(conditions[j].rhsValue.data));
-						if (!satisfiesCondition(recordValue, givenValue, conditions[j].op))
-						{
-							satisfied = false;
-							break;
-						}
-					}
-				}
-
-			}
-
-			// satisfied then print
-			if (satisfied)
-			{
-				// TODO : need to be modified
-				bool * nullValue = (bool*)record.pData;
-				int attrOffset = 0;
-				for (int i = 0; i < attrCount[nRelate]; i++)
-				{
-					bool print = false;
-					for (auto e : selAttrs)
-					{
-						if (relations[nRelate] == string(e.relName) && string(attrInfo[nRelate][i].attrName) == string(e.attrName))
-						{
-							print = true;
-							break;
-						}
-					}
-					
-					if (print && !nullValue[i])
-					{
-						cout << i << " : ";
-						if (attrInfo[nRelate][i].attrType == AttrType::DINT)
-						{
-							cout << *(int*)(record.pData + attrCount[nRelate] + attrOffset);
-						}
-						else if (attrInfo[nRelate][i].attrType == AttrType::STRING)
-						{
-							cout << (record.pData + attrCount[nRelate] + attrOffset);
-						}
-						else if (attrInfo[nRelate][i].attrType == AttrType::VARCHAR)
-						{
-							cout << (record.pData + attrCount[nRelate] + attrOffset);
-						}
-						else
-						{
-							return ERROR;
-						}
-						cout << "		";
-					}
-					attrOffset += attrInfo[nRelate][i].attrLength;
-					
-				}
-				nullValue = nullptr;
-				cout << endl;
-			}
-		}
-	}
-	// multiple table
-	else if (nRelations == 2)
-	{
-
-		if (conditions[iCondition].bRhsIsAttr != 0)
-		{
-			// need to modify
-			return ERROR;
-		}
-
-		bool found = false;
-		int conditionAttrLength;
-		for (int i = 0; i < nRelations; i++)
-		{
-			if (string(relations[i]) == string(conditions[iCondition].lhsAttr.relName))
-			{
-				for (int k = 0; k < attrCount[i]; k++)
-				{
-					if (string(conditions[iCondition].lhsAttr.attrName) == string(attrInfo[i][k].attrName))
-					{
-						string indexFileName =smm->getWork_Database() + "\\" + relations[i];
-						if (rc = ixm->OpenIndex(indexFileName.c_str(), k, ixIndexHandle))
-						{
-							cout << "Error to open Index " << k << endl;
-							return ERROR;
-						}
-						conditionAttrLength = attrInfo[i][k].attrLength;
-						found = true;
-						break;
-					}
-				}
-			}
-			if (found)
-				break;
-		}
-		if (!found)
-		{
-			cout << "Not found the Attribute\n";
-			return QL_INCORRECT_ATTR_TYPE;
-		}
-
-		IX_IndexScan scan;
-		char* data = new char[conditionAttrLength];
-		memset(data, 0, conditionAttrLength);
-		int copyLength = 4;
-		if (conditions[iCondition].rhsValue.type == STRING || conditions[iCondition].rhsValue.type == VARCHAR)
-			copyLength = strlen((char*)conditions[iCondition].rhsValue.data) + 1;
-		memcpy((void*)data, (void*)conditions[iCondition].rhsValue.data, copyLength);
-		if (rc = scan.OpenScan(ixIndexHandle, conditions[iCondition].op, data))
-		{
-			cout << "Error to Open scan\n" << endl;
-			return rc;
-		}
-
-		RID rid;
-		RM_Record record;
-		while (!(rc = scan.GetNextEntry(rid)))
-		{
-			if (rc = rmFileHandle[0].getRec(rid, record))
-			{
-				cout << "Error to get Record\n";
-				return rc;
-			}
-			bool satisfied = true;
-			int nRelate = -1, nAttr = -1;
-			for (int j = 0; j < nConditions; j++)
-			{
-				bool found = false;
-				for (int i = 0; i < nRelations; i++)
-				{
-					if (string(conditions[j].lhsAttr.relName) == string(relations[i]))
-					{
-						for (int k = 0; k < attrCount[i]; k++)
-						{
-							if (string(conditions[j].lhsAttr.attrName) == string(attrInfo[i][k].attrName))
-							{
-								nRelate = i;
-								nAttr = k;
-								found = true;
-								break;
-							}
-						}
-					}
-					if (found)
-						break;
-				}
-				if (conditions[j].op == ISNULL_OP)
-				{
-					bool* nullValues = (bool*)record.pData;
-					if (!nullValues[nAttr])
-					{
-						satisfied = false;
-						break;
-					}
-					nullValues = nullptr;
-				}
-				else if (conditions[j].op == NOTNULL_OP)
-				{
-					bool* nullValues = (bool*)record.pData;
-					if (nullValues[nAttr])
-					{
-						satisfied = false;
-						break;
-					}
-					nullValues = nullptr;
-				}
-				else
-				{
-					if (attrInfo[nRelate][nAttr].attrType == AttrType::DINT)
-					{
-						int attrOffset = 0;
-						for (int i = 0; i < nAttr; i++)
-						{
-							attrOffset += attrInfo[nRelate][i].attrLength;
-						}
-						int recordValue = *(int*)(record.pData + attrCount[nRelate] + attrOffset);
-						int givenValue = *((int*)(conditions[j].rhsValue.data));
-						if (!satisfiesCondition(recordValue, givenValue, conditions[j].op))
-						{
-							satisfied = false;
-							break;
-						}
-					}
-					else if (attrInfo[nRelate][nAttr].attrType == AttrType::STRING)
-					{
-						int attrOffset = 0;
-						for (int i = 0; i < nAttr; i++)
-						{
-							attrOffset += attrInfo[nRelate][i].attrLength;
-						}
-						string recordValue = string(record.pData + attrCount[nRelate] + attrOffset);
-						string givenValue = string((char*)(conditions[j].rhsValue.data));
-						if (!satisfiesCondition(recordValue, givenValue, conditions[j].op))
-						{
-							satisfied = false;
-							break;
-						}
-					}
-				}
-
-			}
-
-			if (satisfied)
-			{
-				// need to be modified
-				bool * nullValue = (bool*)record.pData;
-				int attrOffset = 0;
-				for (int i = 0; i < attrCount[nRelate]; i++)
-				{
-					bool print = false;
-					for (auto e : selAttrs)
-					{
-						if (relations[nRelate] == string(e.relName) && string(attrInfo[nRelate][i].attrName) == string(e.attrName))
-						{
-							print = true;
-							break;
-						}
-					}
-
-					if (print && !nullValue[i])
-					{
-						cout << i << " : ";
-						if (attrInfo[nRelate][i].attrType == AttrType::DINT)
-						{
-							cout << *(int*)(record.pData + attrCount[nRelate] + attrOffset);
-						}
-						else if (attrInfo[nRelate][i].attrType == AttrType::STRING)
-						{
-							cout << (record.pData + attrCount[nRelate] + attrOffset);
-						}
-						else if (attrInfo[nRelate][i].attrType == AttrType::VARCHAR)
-						{
-							cout << (record.pData + attrCount[nRelate] + attrOffset);
-						}
-						else
-						{
-							return ERROR;
-						}
-						cout << "		";
-					}
-					attrOffset += attrInfo[nRelate][i].attrLength;
-
-				}
-				nullValue = nullptr;
-				cout << endl;
-			}
-		}
-	}
-
-	*/
 
 	for (int i = 0; i < nRelations; i++)
 	{
 		rmm->closeFile(rmFileHandle[i]);
 	}
-
+	
+	for (auto rv : results)
+	{
+		for (auto rec : rv)
+		{
+			cout << setw(25) << std::left << rec;
+		}
+		cout << endl;
+	}
 	// clear workspace
 	delete[]rmFileHandle;
 	rmFileHandle = nullptr;
@@ -1440,10 +1149,11 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 	return OK;
 }
 
-RC QL_Manager::print(RM_Record& record, int* attrCount, int nRelate, vector<RelAttr> selAttrs, vector<string> relations, AttrInfo** attrInfo)
+RC QL_Manager::print(RM_Record& record, int* attrCount, int nRelate, vector<RelAttr> selAttrs, vector<string> relations, AttrInfo** attrInfo, vector<string>& result)
 {
 	bool * nullValue = (bool*)record.pData;
 	int attrOffset = 0;
+	//vector<string> result;
 	for (int i = 0; i < attrCount[nRelate]; i++)
 	{
 		bool print = false;
@@ -1458,30 +1168,36 @@ RC QL_Manager::print(RM_Record& record, int* attrCount, int nRelate, vector<RelA
 
 		if (print && !nullValue[i])
 		{
-			cout << i << " : ";
+			//std::cout << i << " : ";
 			if (attrInfo[nRelate][i].attrType == AttrType::DINT)
 			{
-				cout << *(int*)(record.pData + attrCount[nRelate] + attrOffset);
+				//std::cout << *(int*)(record.pData + attrCount[nRelate] + attrOffset);
+				result.push_back(std::to_string(*(int*)(record.pData + attrCount[nRelate] + attrOffset)));
+
 			}
 			else if (attrInfo[nRelate][i].attrType == AttrType::STRING)
 			{
-				cout << (record.pData + attrCount[nRelate] + attrOffset);
+				//std::cout << (record.pData + attrCount[nRelate] + attrOffset);
+				result.push_back(std::string(record.pData + attrCount[nRelate] + attrOffset));
 			}
 			else if (attrInfo[nRelate][i].attrType == AttrType::VARCHAR)
 			{
-				cout << (record.pData + attrCount[nRelate] + attrOffset);
+				result.push_back(std::string(record.pData + attrCount[nRelate] + attrOffset));
+				//std::cout << (record.pData + attrCount[nRelate] + attrOffset);
 			}
 			else
 			{
 				return ERROR;
 			}
-			cout << "		";
+			//std::cout << "		";
 		}
+		else if (print)
+			result.push_back("null");
 		attrOffset += attrInfo[nRelate][i].attrLength;
 
 	}
 	nullValue = nullptr;
-	cout << endl;
+	//std::cout << endl;
 }
 template<typename T>
 bool QL_Manager::satisfiesCondition(T key, T value, CompOp compOp) {
@@ -1532,7 +1248,7 @@ RC QL_Manager::Delete(const char *relName,            // relation to delete from
 	string indexFileName = smm->getWork_Database() + "\\" + relName;
 	if (rc = ixm->OpenIndex(indexFileName.c_str(), iIndex, ixIndexHandle))
 	{
-		cout << "Error to open Index " << iIndex << endl;
+		std::cout << "Error to open Index " << iIndex << endl;
 		return ERROR;
 	}
 	int conditionAttrLength = attributes[iIndex].attrLength;
@@ -1552,7 +1268,7 @@ RC QL_Manager::Delete(const char *relName,            // relation to delete from
 	memcpy((void*)data, (void*)conditions[iCondition].rhsValue.data, copyLength);
 	if (rc = ixScan.OpenScan(ixIndexHandle, conditions[iCondition].op, data))
 	{
-		cout << "Error to Open scan\n" << endl;
+		std::cout << "Error to Open scan\n" << endl;
 		return rc;
 	}
 
@@ -1615,7 +1331,7 @@ RC QL_Manager::Update(const char * relName, const std::vector<RelAttr>& updAttr,
 	}
 	if (attrError)
 	{
-		cout << "AttrType Not Correspond!\n";
+		std::cout << "AttrType Not Correspond!\n";
 		return ERROR;
 	}
 
@@ -1667,14 +1383,14 @@ bool QL_Manager::CheckAndPreprocess(const char * relName, const std::vector<Cond
 	// judge if database is open
 	if (smm->getWork_Database().size() <= 0)
 	{
-		cout << "Database is not open\n";
+		std::cout << "Database is not open\n";
 		return false;
 	}
 
 	// judge if tables exist
 	if (!smm->IsTableExists(relName))
 	{
-		cout << "table not exist" << endl;
+		std::cout << "table not exist" << endl;
 		return false;
 	}
 
@@ -1683,7 +1399,7 @@ bool QL_Manager::CheckAndPreprocess(const char * relName, const std::vector<Cond
 	// get attr info for relations
 	if ((rc = smm->GetTableAttrInfo(smm->getWork_Database().c_str(), relName, attrCount, attributes)))
 	{
-		cout << "Error to get Table Attr Info\n";
+		std::cout << "Error to get Table Attr Info\n";
 		return false;
 	}
 
@@ -1704,7 +1420,7 @@ bool QL_Manager::CheckAndPreprocess(const char * relName, const std::vector<Cond
 		}
 		if (!found1 || !found2)
 		{
-			cout << "AtrrName Error\n";
+			std::cout << "AtrrName Error\n";
 			return false;
 		}
 	}
@@ -1805,7 +1521,7 @@ bool QL_Manager::isSatisifyConditions(int attrCount, AttrInfo * attributes, RM_F
 	RC rc;
 	if (rc = rmFileHandle.getRec(rid, record))
 	{
-		cout << "Error to get Record\n";
+		std::cout << "Error to get Record\n";
 		return false;
 	}
 	
@@ -1936,7 +1652,6 @@ std::string QL_Manager::ReplaceAll(std::string & str, const std::string & from, 
 	}
 	return str;
 }
-
 
 RC QL_Manager::findCorAttr(int& indexRelation, int& indexAttr, int* attrCount, AttrInfo ** attributes, Condition & condition, vector<string> relations, bool right)
 {

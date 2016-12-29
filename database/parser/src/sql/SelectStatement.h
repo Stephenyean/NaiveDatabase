@@ -10,6 +10,7 @@ namespace hsql {
 		kOrderAsc,
 		kOrderDesc
 	} OrderType;
+	
 
 	/**
 	 * Description of the order by clause within a select statement

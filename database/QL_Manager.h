@@ -2,7 +2,9 @@
 //#include "parser.h"
 #include "SM_Manager.h"
 #include "RM_Manager.h"
-
+#include "parser\src\sql\SelectStatement.h"
+//#include "Parser.h"
+//using namespace hsql;
 struct RelAttr {
 	RelAttr(string _relName, string _attrName):relName(_relName), attrName(_attrName) {}
 	RelAttr() {}
@@ -39,7 +41,8 @@ public:
 		int           nRelations,       // # relations in From clause
 		vector<string>		relations, // relations in From clause
 		int           nConditions,      // # conditions in Where clause
-		vector<Condition> conditions);  // conditions in Where clause
+		vector<Condition> conditions,
+		hsql::SelectStatement* stmt);  // conditions in Where clause
 
 	RC Insert(const char  *relName,           // relation to insert into
 		int         nValues,            // # values to insert
@@ -55,7 +58,7 @@ public:
 		 std::vector<Condition> & conditions);  // conditions in Where clause
 	template<typename T>
 	bool satisfiesCondition(T key, T value, CompOp op);
-	RC print(RM_Record& record, int* attrCount, int nRelate, vector<RelAttr> selAttrs, vector<string> relations, AttrInfo** attrInfo);
+	RC print(RM_Record& record, int* attrCount, int nRelate, vector<RelAttr> selAttrs, vector<string> relations, AttrInfo** attrInfo, vector<string>&);
 	bool isRecordSatisfied(void* lhsValue, CompOp op, void* rhsValue, AttrType attrtype)
 	{
 		if (attrtype == DINT)
