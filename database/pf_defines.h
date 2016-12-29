@@ -73,5 +73,6 @@ enum AttrType {
 	VARCHAR,
 	DDATE,
 	STAR,
-	NUL
+	NUL,
+
 };

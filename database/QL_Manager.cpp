@@ -1799,7 +1799,6 @@ int QL_Manager::findCorAttr(int attrCount, const AttrInfo * attributes, const ch
 		return -1;
 }
 
-
 RC QL_Manager::findCorAttr(int& indexRelation, int& indexAttr, int* attrCount, AttrInfo ** attributes, Condition & condition, vector<string> relations, bool right)
 {
 

@@ -46,13 +46,14 @@ public:
 	RC_Return DropDb(const char* dbName);
 	RC_Return CreateTable(const char *relName,                // Create relation
 		int        attrCount,
-		AttrInfo   *attributes, int primayKeyIx);
+		AttrInfo   *attributes, int primayKeyIx, int checkInIx, std::vector<string> checkInStrs);
 	RC_Return DropTable(const char *relName);               // Destroy relation
 	bool IsTableExists(string relName);
 	RC_Return GetTableAttrInfo(const char*dbName, const char *relName, int &attrCount, AttrInfo *&attributes);
 	RC_Return GetTableAttrInfo(const char*dbName, const char *relName, int &attrCount, AttrInfo *&attributes, int & primaryKeyIx);
-	RC_Return SaveTableAttrInfo(const char*dbName, const char *relName, int attrCount, AttrInfo *attributes, int primaryKeyIx);
+	RC_Return SaveTableAttrInfo(const char*dbName, const char *relName, int attrCount, AttrInfo *attributes, int primaryKeyIx, int checkInIx, std::vector<string> checkInStrs);
 	RC_Return DropTableAttrInfo(const char*dbName, const char *relName);
+	RC_Return GetCheckIn(int & checkInIx, std::vector<string> & checkInStrs);
 	std::vector<std::string> GetTables(const char *dbName);
 	std::string getWork_Database() { return work_database; }
 private:
@@ -67,4 +68,6 @@ private:
 	int attrCountBuffer;
 	AttrInfo * attributesBuffer;
 	int primaryKeyIxBuffer;
+	int checkInIxBuffer;
+	std::vector<string> checkInStrsBuffer;
 };
