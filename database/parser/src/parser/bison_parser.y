@@ -42,8 +42,8 @@ int yyerror(YYLTYPE* llocp, SQLParserResult** result, yyscan_t scanner, const ch
 %code requires {
 // %code requires block	
 
-#include ".sql/statements.h"
-#include ".SQLParserResult.h"
+#include "../sql/statements.h"
+#include "../SQLParserResult.h"
 #include "parser_typedef.h"
 
 // Auto update column and line number
@@ -73,7 +73,7 @@ int yyerror(YYLTYPE* llocp, SQLParserResult** result, yyscan_t scanner, const ch
 %define api.prefix {hsql_}
 %define api.token.prefix {SQL_}
 
-%define parse.error 
+%define parse.error verbose
 %locations
 
 %initial-action {

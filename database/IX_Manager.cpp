@@ -1044,6 +1044,7 @@ bool IX_IndexScan::satisfiesCondition(T key, T value) {
 	case GE_OP:
 		if (key >= value) match = true;
 		break;
+	case NE_OP:
 	case NO_OP:
 	case NOTNULL_OP:
 		match = true;
