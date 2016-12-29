@@ -158,10 +158,10 @@ int yyerror(YYLTYPE* llocp, SQLParserResult** result, yyscan_t scanner, const ch
 %token DELTA GROUP INDEX INNER LIMIT LOCAL MERGE MINUS ORDER
 %token OUTER RIGHT TABLE UNION USING WHERE CALL DATE DESC
 %token DROP FILE FROM FULL HASH HINT INTO JOIN LEFT LIKE
-%token LOAD NULL PART PLAN SHOW TEXT TIME VIEW WITH ADD ALL
+%token LOAD NULL PART PLAN SHOW CHAR TIME VIEW WITH ADD ALL
 %token AND ASC CSV FOR INT KEY NOT OFF SET TBL TOP AS BY IF
 %token IN IS OF ON OR TO
-%token DATABASE USE READ QUIT MAX MIN AVG SUM
+%token DATABASE DATABASES USE READ QUIT MAX MIN AVG SUM
 
 
 /*********************************
@@ -283,9 +283,8 @@ single_statement:
             $$ = new SingleStatement(SingleStatement::kUseDatabase);
 			$$->name = $2;
          }
-	|	SHOW DATABASE IDENTIFIER{
+	|	SHOW DATABASES{
             $$ = new SingleStatement(SingleStatement::kShowDatabase);
-			$$->name = $3;
          }
 	|	SHOW TABLE IDENTIFIER{
             $$ = new SingleStatement(SingleStatement::kShowTable);
@@ -396,10 +395,10 @@ width:
 
 null_type:
         NOT NULL {
-            $$ = false;
+            $$ = true;
         }
     |   /**empty**/ {
-             $$ = true;
+             $$ = false;
          }
 
 primary_key_def:
@@ -412,7 +411,7 @@ column_type:
 		INT { $$ = ColumnDefinition::DINT; }
 	|	INTEGER { $$ = ColumnDefinition::DINT; }
 	|	DOUBLE { $$ = ColumnDefinition::DFLOAT; }
-	|	TEXT { $$ = ColumnDefinition::STRING; }
+	|	CHAR { $$ = ColumnDefinition::STRING; }
 	|   VARCHAR { $$ = ColumnDefinition::VARCHAR; }
 	;
 

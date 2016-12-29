@@ -1777,6 +1777,21 @@ int QL_Manager::findBestCondition(std::vector<Condition> & conditions)
 
 	if (!foundCondition)
 	{
+		for (int i = 0; i < nConditions; i++)
+		{
+			if (conditions[i].op == LIKE_OP)
+			{
+				conditions[i].op = NO_OP;
+				iCondition = i;
+				foundCondition = true;
+				break;
+			}
+		}
+	}
+
+
+	if (!foundCondition)
+	{
 		iCondition = 0;
 		foundCondition = true;
 	}
@@ -1912,7 +1927,7 @@ int QL_Manager::findCorAttr(int attrCount, const AttrInfo * attributes, const ch
 		return -1;
 }
 
-std::string QL_Manager::ReplaceAll(std::string str, const std::string & from, const std::string & to)
+std::string QL_Manager::ReplaceAll(std::string & str, const std::string & from, const std::string & to)
 {
 	size_t start_pos = 0;
 	while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
