@@ -72,16 +72,7 @@ public:
 		{
 			string givenValue = string((char*)rhsValue);
 			string recordValue = string((char*)lhsValue);
-			// replace other regex identifier
-			vector<string> regexIds = { "\\", "(", ")", "?", ":", "[", "]", "*", "+","^", "$", "|" };
-			for (string regexId : regexIds)
-			{
-				ReplaceAll(givenValue, regexId, "\\" + regexId);
-			}
-			// translate sql to regex
-			ReplaceAll(givenValue, "_", "(.)");
-			ReplaceAll(givenValue, "%", "(.)*");
-			// find match
+			
 			bool match = regex_match(recordValue, regex(givenValue));
 			return match;
 		}

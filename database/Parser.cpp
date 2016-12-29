@@ -531,20 +531,24 @@ bool Parser::checkPK(const char * relName, const vector<Value> & values)
 	AttrInfo * attributes = NULL;
 	int primaryKeyIx; 
 	smm->GetTableAttrInfo(smm->getWork_Database().c_str(), relName, attrCount, attributes, primaryKeyIx);
+	if (primaryKeyIx == -1)
+	{
+		return true;
+	}
 	// open Handle
 	RC rc;
 	IX_IndexHandle ixIndexHandle;
 	string indexFileName = smm->getWork_Database() + "\\" + relName;
 	if (rc = ixm->OpenIndex(indexFileName.c_str(), primaryKeyIx, ixIndexHandle))
 	{
-		cout << "Error to open Index " << primaryKeyIx << endl;
+		//cout << "Error to open Index " << primaryKeyIx << endl;
 		return false;
 	}
 	// open scan
 	IX_IndexScan ixScan;
 	if (rc = ixScan.OpenScan(ixIndexHandle, EQ_OP, values[primaryKeyIx].data))
 	{
-		cout << "Error to Open scan\n" << endl;
+		//cout << "Error to Open scan\n" << endl;
 		return rc;
 	}
 	// find duplicate

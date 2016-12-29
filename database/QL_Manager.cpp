@@ -1201,8 +1201,9 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			}
 		}
 	}
-	else
+	else if(results.size() >= 2)
 	{
+
 		if (stmt->groupBy->columns->size() != 1 && results[0].size() != 2)
 		{
 			cout << "Error using Group By\n";
@@ -1211,10 +1212,92 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 
 		vector<string> selectCol = results[0];
 		int byCol = 0;
-		//for (int i = 0; i < 2; i++)
-		//{
-		//	if(results[i] == stmt->selectDistinct)
-		//}
+		bool found = false;
+		for (int i = 0; i < 2; i++)
+		{
+			if (results[0][i] == string(stmt->groupBy->columns->operator[](1)->getName()))
+			{
+				byCol = i;
+				found = true;
+				break;
+			}
+		}
+		if (!found)
+		{
+			cout << "Error \n";
+			return ERROR;
+		}
+		std::map<string, vector<string>> Map;
+		for (int i = 1; i < results.size(); i++)
+		{
+			Map[results[i][byCol]].push_back(results[i][1 - byCol]);
+		}
+
+		switch (stmt->type)
+		{
+			case(hsql::SelectStatement::SelectType::NO_OP):
+			{
+				for (int i = 1; i < results.size(); i++)
+					outputs.push_back(results[i]);
+				break;
+			}
+			case(hsql::SelectStatement::SelectType::SUM_OP):
+			{
+				for (auto e : Map)
+				{
+					vector<string> V{ "aa","bb" };
+					V[byCol] = e.first;
+					long long sum = 0;
+					for (auto e2 : e.second)
+						sum += std::atoi(e2.c_str());
+					V[1 - byCol] = std::to_string(sum);
+					outputs.push_back(V);
+				}
+				break;
+			}
+			case(hsql::SelectStatement::SelectType::MAX_OP):
+			{
+				for (auto e : Map)
+				{
+					vector<string> V{ "aa","bb" };
+					V[byCol] = e.first;
+					int intMax = INT_MIN;
+					for (auto e2 : e.second)
+						intMax = std::max(intMax, std::atoi(e2.c_str()));
+					V[1 - byCol] = std::to_string(intMax);
+					outputs.push_back(V);
+				}
+				break;
+			}
+			case(hsql::SelectStatement::SelectType::MIN_OP):
+			{
+				for (auto e : Map)
+				{
+					vector<string> V{ "aa","bb" };
+					V[byCol] = e.first;
+					int intMin = INT_MAX;
+					for (auto e2 : e.second)
+						intMin = std::min(intMin, std::atoi(e2.c_str()));
+					V[1 - byCol] = std::to_string(intMin);
+					outputs.push_back(V);
+				}
+				break;
+			}
+			case(hsql::SelectStatement::SelectType::AVG_OP):
+			{
+				for (auto e : Map)
+				{
+					vector<string> V{ "aa","bb" };
+					V[byCol] = e.first;
+					double sum = 0;
+					for (auto e2 : e.second)
+						sum += std::atoi(e2.c_str());
+					V[1 - byCol] = std::to_string(sum/e.second.size());
+					outputs.push_back(V);
+				}
+				break;
+			}
+		}
 	}
 	for (auto rv : outputs)
 	{
@@ -1351,7 +1434,7 @@ RC QL_Manager::Delete(const char *relName,            // relation to delete from
 	memcpy((void*)data, (void*)conditions[iCondition].rhsValue.data, copyLength);
 	if (rc = ixScan.OpenScan(ixIndexHandle, conditions[iCondition].op, data))
 	{
-		std::cout << "Error to Open scan\n" << endl;
+		//std::cout << "Error to Open scan\n" << endl;
 		return rc;
 	}
 
@@ -1716,15 +1799,6 @@ int QL_Manager::findCorAttr(int attrCount, const AttrInfo * attributes, const ch
 		return -1;
 }
 
-std::string QL_Manager::ReplaceAll(std::string & str, const std::string & from, const std::string & to)
-{
-	size_t start_pos = 0;
-	while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
-		str.replace(start_pos, from.length(), to);
-		start_pos += to.length(); // Handles case where 'to' is a substring of 'from'
-	}
-	return str;
-}
 
 RC QL_Manager::findCorAttr(int& indexRelation, int& indexAttr, int* attrCount, AttrInfo ** attributes, Condition & condition, vector<string> relations, bool right)
 {
