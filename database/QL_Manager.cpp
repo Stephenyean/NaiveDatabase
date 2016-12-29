@@ -1670,16 +1670,6 @@ bool QL_Manager::isSatisifyConditions(int attrCount, AttrInfo * attributes, RM_F
 				string givenValue = string((char*)(conditions[j].rhsValue.data));
 				if (conditions[j].op == CompOp::LIKE_OP)
 				{
-					// replace other regex identifier
-					vector<string> regexIds = { "\\", "(", ")", "?", ":", "[", "]", "*", "+","^", "$", "|" };
-					for (string regexId : regexIds)
-					{
-						ReplaceAll(givenValue, regexId, "\\" + regexId);
-					}
-					// translate sql to regex
-					ReplaceAll(givenValue, "_", "(.)");
-					ReplaceAll(givenValue, "%", "(.)*");
-					// find match
 					satisfied = regex_match(recordValue, regex(givenValue));
 				}
 				else if (!satisfiesCondition(recordValue, givenValue, conditions[j].op))

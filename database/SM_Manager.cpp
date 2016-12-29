@@ -64,6 +64,7 @@ RC_Return SM_Manager::CreateDb(const char * dbName)
 
 RC_Return SM_Manager::DropDb(const char * dbName)
 {
+	dbrelNameBuffer.clear();
 	// rm -r database
 	// set work database as null
 	string str1 = string("_") + dbName;
@@ -129,6 +130,7 @@ RC_Return SM_Manager::CreateTable(const char * relName, int attrCount, AttrInfo 
 
 RC_Return SM_Manager::DropTable(const char * relName)
 {
+	dbrelNameBuffer.clear();
 	// rm table attrinfo
 	if (work_database.length() <= 0)
 	{
@@ -161,36 +163,7 @@ bool SM_Manager::IsTableExists(string relName)
 RC_Return SM_Manager::GetTableAttrInfo(const char * dbName, const char * relName, int & attrCount, AttrInfo *& attributes)
 {
 	int primaryKeyIx;
-	if (!dbName)
-	{
-		if (work_database.length() <= 0)
-		{
-			cout << "No opening database. Please \"USE DATABASE <dbname>;\"\n";
-			return NO_OPENING_DATABASE_ERROR;
-		}
-		dbName = work_database.c_str();
-	}
-	ifstream fin;
-	fin.open((std::string(dbName) + "\\" + relName + ".attr").c_str());
-	if (fin) {
-		fin >> attrCount;
-		fin >> primaryKeyIx;
-		attributes = new AttrInfo[attrCount];
-		for (size_t i = 0; i < attrCount; i++)
-		{
-			attributes[i].attrName = new char[MAXNAME];
-			fin >> attributes[i].attrName;
-			fin >> attributes[i].attrLength;
-			int temp;  fin >> temp; attributes[i].attrType = AttrType(temp);
-			fin >> attributes[i].notnull;
-		}
-		fin.close();
-		return OK;
-	}
-	else {
-
-		return OPEN_ERROR;
-	}
+	return GetTableAttrInfo(dbName, relName, attrCount, attributes, primaryKeyIx);
 }
 
 RC_Return SM_Manager::GetTableAttrInfo(const char*dbName, const char * relName, int & attrCount, AttrInfo *& attributes, int & primaryKeyIx)
@@ -204,6 +177,13 @@ RC_Return SM_Manager::GetTableAttrInfo(const char*dbName, const char * relName, 
 		}
 		dbName = work_database.c_str();
 	}
+	// cacheHit
+	if (std::string(dbName) + "\\" + relName == dbrelNameBuffer)
+	{
+		attrCount = attrCountBuffer;
+		attributes = attributesBuffer;
+		primaryKeyIx = primaryKeyIxBuffer;
+	}
 	ifstream fin;
 	fin.open((std::string(dbName) + "\\" + relName + ".attr").c_str());
 	if (fin) {
@@ -219,6 +199,11 @@ RC_Return SM_Manager::GetTableAttrInfo(const char*dbName, const char * relName, 
 			fin >> attributes[i].notnull;
 		}
 		fin.close();
+		// cacheStore
+		dbrelNameBuffer = std::string(dbName) + "\\" + relName;
+		attrCountBuffer = attrCount;
+		attributesBuffer = attributes;
+		primaryKeyIxBuffer = primaryKeyIx;
 		return OK;
 	}
 	else {

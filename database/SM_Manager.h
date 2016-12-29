@@ -62,4 +62,9 @@ private:
 	std::vector<RM_FileHandle> rmHandles;
 	std::string work_database;
 	std::string db_dir;
+
+	std::string dbrelNameBuffer;
+	int attrCountBuffer;
+	AttrInfo * attributesBuffer;
+	int primaryKeyIxBuffer;
 };

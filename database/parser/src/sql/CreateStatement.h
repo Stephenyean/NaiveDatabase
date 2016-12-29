@@ -33,6 +33,12 @@ namespace hsql {
 		bool notnull;
 	};
 
+	struct CheckInDef
+	{
+		const char * relName;
+		std::vector<hsql::Expr*>* checkInVec;
+	};
+
 	/**
 	* Represents SQL Create statements.
 	* Example: "CREATE TABLE students (name TEXT, student_number INTEGER, city TEXT, grade DOUBLE)"
@@ -50,6 +56,7 @@ namespace hsql {
 			filePath(NULL),
 			tableName(NULL),
 			primaryKey(NULL),
+			checkIn(NULL),
 			columns(NULL) {};
 
 		virtual ~CreateStatement() {
@@ -64,6 +71,7 @@ namespace hsql {
 		const char* filePath;
 		const char* tableName;
 		const char* primaryKey;
+		CheckInDef *checkIn;
 		std::vector<ColumnDefinition*>* columns;
 	};
 
