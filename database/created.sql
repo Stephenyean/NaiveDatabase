@@ -5,8 +5,8 @@ USE orderDB;
 
 CREATE TABLE publisher (
   id int(10) NOT NULL,
-  name varchar(100) NOT NULL,
-  state varchar(2),
+  name char(100) NOT NULL,
+  state char(2),
   PRIMARY KEY  (id)
 );
 

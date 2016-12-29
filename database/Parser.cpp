@@ -101,18 +101,23 @@ int Parser::processSingle(hsql::SingleStatement *stmt)
 		break;
 	case (SingleStatement::kShowDatabase):
 	{
-		cout << "Database: " << stmt->name << "\n";
-		cout << "Table:\n";
-		bool hasTables = false;
-		for (string table : smm->GetTables(stmt->name))
+		vector<string> files;
+		getFiles("./_*", files);
+		for (string file : files)
 		{
-			hasTables = true;
-			cout << table << "\n";
+			cout << "Database: " << file << "\n";
+			cout << "Table:\n";
+			bool hasTables = false;
+			for (string table : smm->GetTables(file.c_str()))
+			{
+				hasTables = true;
+				cout << table << "\n";
+			}
+			if (!hasTables) {
+				cout << "No existing table. Please \"CREATE TABLE <tablename> ( columnlist );\"\n";
+			}
 		}
-		if (!hasTables) {
-			cout << "No existing table. Please \"CREATE TABLE <tablename> ( columnlist );\"\n";
-		}
-			break;
+		break;
 	}
 	case (SingleStatement::kShowTable):
 	{
@@ -529,6 +534,27 @@ void Parser::packConditions(const char * relName, std::vector<hsql::Expr*>* wher
 
 		conditions.push_back(localCondition);
 	}
+}
+
+void Parser::getFiles(string path, vector<string>& files)
+{
+	WIN32_FIND_DATA f;
+	HANDLE h = FindFirstFile(path.c_str(), &f);
+
+	if (h == INVALID_HANDLE_VALUE) { return; }
+
+	do
+	{
+		const char * name = f.cFileName;
+
+		if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) { continue; }
+
+		//char filePath[1024];
+		//sprintf(filePath, "%s%s%s", path, "\\", name);
+
+		files.push_back(name);
+	} while (FindNextFile(h, &f));
+	FindClose(h);
 }
 
 

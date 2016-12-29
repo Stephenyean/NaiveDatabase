@@ -15,10 +15,11 @@ SM_Manager::~SM_Manager()
 RC_Return SM_Manager::OpenDb(const char * dbName)
 {
 	// set working database
-	db_dir=string(dbName)+SYS_SEP;
-	if (_access(dbName, 0) == 0) // argv[2] means test for existence
+	string str1 = string("_") + dbName;
+	const char * _dbName = str1.c_str();
+	if (_access(_dbName, 0) == 0) // argv[2] means test for existence
 	{
-		work_database = std::string(dbName);
+		work_database = std::string(_dbName);
 		return OK;
 	}
 	else
@@ -33,7 +34,7 @@ RC_Return SM_Manager::CloseDb()
 	//1.close all files -> flush the buffer
 	if (work_database.length() <= 0)
 	{
-		cout << "No opening database. Please \"USE DATABASE <dbname>;\"\n";
+		cout << "No opening database. Please \"USE <dbname>;\"\n";
 		return NO_OPENING_DATABASE_ERROR;
 	}
 	for (auto rmHandle : rmHandles)
@@ -48,7 +49,9 @@ RC_Return SM_Manager::CloseDb()
 RC_Return SM_Manager::CreateDb(const char * dbName)
 {
 	// mkdir database
-	if (mkdir(dbName) == 0)
+	string str1 = string("_") + dbName;
+	const char * _dbName = str1.c_str();
+	if (mkdir(_dbName) == 0)
 	{
 		return OK;
 	}
@@ -63,14 +66,16 @@ RC_Return SM_Manager::DropDb(const char * dbName)
 {
 	// rm -r database
 	// set work database as null
-	if (_access(dbName, 0) != 0)
+	string str1 = string("_") + dbName;
+	const char * _dbName = str1.c_str();
+	if (_access(_dbName, 0) != 0)
 	{
 		cout << "Database " << dbName << " is not exists.\n";
 		return OPEN_ERROR;
 	}
-	if (remove_dir(dbName) == 0)
+	if (remove_dir(_dbName) == 0)
 	{
-		if (strcmp(dbName, work_database.c_str()) == 0)
+		if (strcmp(_dbName, work_database.c_str()) == 0)
 		{
 			work_database.clear();
 		}
@@ -217,7 +222,6 @@ RC_Return SM_Manager::GetTableAttrInfo(const char*dbName, const char * relName, 
 		return OK;
 	}
 	else {
-
 		return OPEN_ERROR;
 	}
 }
@@ -244,7 +248,9 @@ RC_Return SM_Manager::SaveTableAttrInfo(const char * dbName, const char * relNam
 
 RC_Return SM_Manager::DropTableAttrInfo(const char * dbName, const char * relName)
 {
-	remove((string(dbName)+"\\"+relName).c_str());
+	string str1 = string("_") + dbName;
+	const char * _dbName = str1.c_str();
+	remove((string(_dbName)+"\\"+relName).c_str());
 	return OK;
 }
 

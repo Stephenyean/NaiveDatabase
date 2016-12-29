@@ -30,6 +30,6 @@ private:
 	IX_Manager *ixm;
 	SM_Manager *smm;
 	void packConditions(const char * relName, std::vector<hsql::Expr*>* whereClause, std::vector<Condition> & conditions);
+	void getFiles(string path, vector<string>& files);
 	
 };
-
