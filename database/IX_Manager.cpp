@@ -653,7 +653,7 @@ RC IX_IndexHandle::getPosition(void* pData, int& position, BufType b)
 		IX_Node* nodeArray = (IX_Node*)((char*)keyArray + ixHead->attrLength * ixHead->degree);
 		for (int i = 0; i < pageHead->numEntries; i++)
 		{
-			if (string(keyData) < string(keyArray + i*ixHead->attrLength))
+			if (string(keyData) <= string(keyArray + i*ixHead->attrLength))
 			{
 				position = i;
 				break;
@@ -744,7 +744,7 @@ RC IX_IndexHandle::DeleteEntry  (void *pData, const RID &rid)  // Delete index e
 	bool found = false;
 	if (ixHead->attrType == DINT)
 	{
-		int* keyArray = (int*)(b + sizeof(IX_Page_head));
+		int* keyArray = (int*)((char*)b + sizeof(IX_Page_head));
 		int keyData = *(int*)pData;
 		while (true)
 		{
@@ -785,7 +785,7 @@ RC IX_IndexHandle::DeleteEntry  (void *pData, const RID &rid)  // Delete index e
 	}
 	else if (ixHead->attrType == STRING || ixHead->attrType == VARCHAR)
 	{
-		char* keyArray = (char*)(b + sizeof(IX_Page_head));
+		char* keyArray = (char*)((char *)b + sizeof(IX_Page_head));
 		char* keyData = (char*)pData;
 		while (true)
 		{
@@ -821,7 +821,6 @@ RC IX_IndexHandle::DeleteEntry  (void *pData, const RID &rid)  // Delete index e
 			}
 			else
 				position++;
-
 		}
 	}
 	if (found == false)

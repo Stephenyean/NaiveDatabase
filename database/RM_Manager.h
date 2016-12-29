@@ -90,6 +90,7 @@ public:
 	RID	rid;
 public:
 	RM_Record();		//constructor
+	RM_Record(const RM_Record & record);
 	RM_Record(const char *pData, int record_size, const RID &rid);
 	~RM_Record();		//destructor
 	RC getData(char *&pData)const;   //set pData to point to the record's contents

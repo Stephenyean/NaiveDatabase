@@ -278,6 +278,46 @@ void Parser::processDelete(hsql::DeleteStatement *stmt){
 }
 
 void Parser::processUpdate(hsql::UpdateStatement* stmt){
+	vector<Condition> conditions;
+	const char * relName = stmt->table->getName();
+	packConditions(relName, stmt->whereClause, conditions);
+
+	std::vector<RelAttr> updAttr;         // attribute to update
+	std::vector<int> bIsValue;             // 0/1 if RHS of = is attribute/value
+	std::vector<RelAttr> rhsRelAttr;      // attr on RHS of =
+	std::vector<Value> rhsValue;          // value on RHS of =
+
+	for (size_t i = 0; i < stmt->updates->size(); i++)
+	{
+		// upAttr
+		RelAttr myUpdAttr;
+		myUpdAttr.relName = relName;
+		myUpdAttr.attrName = (*stmt->updates)[i]->column;
+		updAttr.push_back(myUpdAttr);
+		// bIsValue & rhsValue
+		Value myRhsValue;
+		switch ((*stmt->updates)[i]->value->type) {
+		case(kExprLiteralInt): {
+			myRhsValue.type = DINT;
+			myRhsValue.data = &(*stmt->updates)[i]->value->ival;
+			bIsValue.push_back(true);
+			break;
+		}
+		case(kExprLiteralString): {
+			myRhsValue.type = STRING;
+			myRhsValue.data = (*stmt->updates)[i]->value->name;
+			bIsValue.push_back(true);
+			break;
+		}
+		default:
+			bIsValue.push_back(false);
+			break;
+		}
+		rhsValue.push_back(myRhsValue);
+	}
+
+	qlm->Update(relName, updAttr, bIsValue, rhsRelAttr, rhsValue, conditions);
+
 	/*
 	Condition myCondition[10000];
 	for(int i=0; i<stmt->where->size(); i++){

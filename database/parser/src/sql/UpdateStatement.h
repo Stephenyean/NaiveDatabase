@@ -20,18 +20,18 @@ namespace hsql {
             SQLStatement(kStmtUpdate),
             table(NULL),
             updates(NULL),
-            where(NULL) {}
+            whereClause(NULL) {}
 
         virtual ~UpdateStatement() {
             delete table;
             delete updates;
-            delete where;
+            delete whereClause;
         }
 
         // TODO: switch to char* instead of TableRef
         TableRef* table;
         std::vector<UpdateClause*>* updates;
-        std::vector<Expr*>* where;
+        std::vector<Expr*>* whereClause;
     };
 
 } // namsepace hsql

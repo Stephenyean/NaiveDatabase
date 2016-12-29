@@ -48,10 +48,10 @@ public:
 	RC Delete(const char *relName,            // relation to delete from
 		 std::vector<Condition> & conditions);  // conditions in Where clause
 	RC Update(const char *relName,            // relation to update
-		const RelAttr &updAttr,         // attribute to update
-		const int bIsValue,             // 0/1 if RHS of = is attribute/value
-		const RelAttr &rhsRelAttr,      // attr on RHS of =
-		const Value &rhsValue,          // value on RHS of =
+		const std::vector<RelAttr> &updAttr,         // attribute to update
+		const std::vector<int> bIsValue,             // 0/1 if RHS of = is attribute/value
+		const std::vector<RelAttr> &rhsRelAttr,      // attr on RHS of =
+		const std::vector<Value> &rhsValue,          // value on RHS of =
 		 std::vector<Condition> & conditions);  // conditions in Where clause
 	template<typename T>
 	bool satisfiesCondition(T key, T value, CompOp op);
@@ -81,12 +81,12 @@ public:
 	RM_Manager* rmm;
 	int verbose = 1;
 private:
-	bool CheckAndPreprocess(const char * relName, std::vector<Condition> & conditions, int & attrCount, AttrInfo *& attributes);
+	bool CheckAndPreprocess(const char * relName, const std::vector<Condition> & conditions, int & attrCount, AttrInfo *& attributes);
 	int findBestCondition(std::vector<Condition> & conditions);
-	bool isSatisifyConditions(int attrCount, AttrInfo * attributes, RM_FileHandle & rmFileHandle, const RID & rid, RM_Record &record, std::vector<Condition> &  conditions);
+	bool isSatisifyConditions(int attrCount, AttrInfo * attributes, RM_FileHandle & rmFileHandle, const RID & rid, RM_Record &record, const std::vector<Condition> &  conditions);
 	void deleteEntrys(const std::vector<RID> & rids, const std::vector<RM_Record> & records, RM_FileHandle & rmFileHandle, std::vector<IX_IndexHandle> & ixIndexHandles);
-	int findCorAttr(int attrCount, const AttrInfo * attributes, const Condition & condition);
+	int findCorAttr(int attrCount, const AttrInfo * attributes, const char * attrName);
 	RC findCorAttr(int& indexRelation, int& indexAttr, int* attrCount, AttrInfo ** attributes,  Condition & condition, vector<string> relations, bool right);
 	std::string ReplaceAll(std::string str, const std::string& from, const std::string& to);
-
+	std::vector<RM_Record> recordsBuffer;
 };
