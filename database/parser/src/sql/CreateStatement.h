@@ -12,7 +12,8 @@ namespace hsql {
 			DINT,
 			DFLOAT,
 			STRING,
-			VARCHAR
+			VARCHAR,
+			DDATE
 		};
 
 		ColumnDefinition(char* name, DataType type, int64_t width, bool notnull) :

@@ -147,6 +147,8 @@ int Parser::processSingle(hsql::SingleStatement *stmt)
 				case AttrType::NUL:
 					cout << "NUL";
 					break;
+				case AttrType::DDATE:
+					cout << "DATE";
 				default:
 					break;
 				}
@@ -190,8 +192,10 @@ void Parser::processCreate(hsql::CreateStatement *stmt)
 {
 	AttrInfo *attributes = new AttrInfo[stmt->columns->size()];
 	int i = 0;
-	int primaryKeyIx = -1;
+	int primaryKeyIx = -1, checkInIx = -1;
+	vector<string> checkInStrs;
 	bool primaryKeyValid = stmt->primaryKey == NULL;
+	bool checkInValid = stmt->checkIn == NULL;
 	for (ColumnDefinition *column : *(stmt->columns))
 	{
 		attributes[i].attrName = column->name;
@@ -204,6 +208,8 @@ void Parser::processCreate(hsql::CreateStatement *stmt)
 		case AttrType::VARCHAR:
 			attributes[i].attrLength = column->width + 1;
 			break;
+		case AttrType::DDATE:
+			attributes[i].attrLength = 15;
 		default:
 			attributes[i].attrLength = 4; // DFLOAT INT
 			break;
@@ -214,6 +220,15 @@ void Parser::processCreate(hsql::CreateStatement *stmt)
 			primaryKeyIx = i;
 			primaryKeyValid = true;
 		}
+		if (!checkInValid && strcmp(attributes[i].attrName, stmt->checkIn->relName) == 0)
+		{
+			checkInIx = i;
+			checkInValid = true;
+			for (Expr * expr : *(stmt->checkIn->checkInVec))
+			{
+				checkInStrs.push_back(expr->name);
+			}
+		}
 		i += 1;
 	}
 	if (!primaryKeyValid)
@@ -222,7 +237,13 @@ void Parser::processCreate(hsql::CreateStatement *stmt)
 		delete[] attributes;
 		return;
 	}
-	smm->CreateTable(stmt->tableName, stmt->columns->size(), attributes, primaryKeyIx);
+	if (!checkInValid)
+	{
+		cout << "Check in is not valid." << endl;
+		delete[] attributes;
+		return;
+	}
+	smm->CreateTable(stmt->tableName, stmt->columns->size(), attributes, primaryKeyIx, checkInIx, checkInStrs);
 	delete[] attributes;
 }
 
@@ -268,14 +289,14 @@ void Parser::processInsert(hsql::InsertStatement *stmt){
 		}
 		switch(stmt->type){
 			case(InsertStatement::kInsertValues):{
-				if (checkPK(stmt->tableName, myValues))
-				{
+				//if (checkPK(stmt->tableName, myValues))
+				//{
 					qlm->Insert(stmt->tableName, myValues.size(), myValues);
-				}
-				else
-				{
-					cout << "Primary Key Check Failed" << endl;
-				}
+				//}
+				//else
+				//{
+				//	cout << "Primary Key Check Failed" << endl;
+				//}
 
 				break;
 			}

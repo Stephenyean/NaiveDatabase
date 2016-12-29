@@ -90,7 +90,7 @@ RC_Return SM_Manager::DropDb(const char * dbName)
 	
 }
 
-RC_Return SM_Manager::CreateTable(const char * relName, int attrCount, AttrInfo * attributes, int primaryKeyIx)
+RC_Return SM_Manager::CreateTable(const char * relName, int attrCount, AttrInfo * attributes, int primaryKeyIx, int checkInIx, std::vector<string> checkInStrs)
 {
 	// touch table attrInfo
 	// create index for all
@@ -124,7 +124,7 @@ RC_Return SM_Manager::CreateTable(const char * relName, int attrCount, AttrInfo 
 	{
 		ixm->CreateIndex((work_database + "\\" + relName).c_str(), i, attributes[i].attrType, attributes[i].attrLength);
 	}
-	SaveTableAttrInfo(NULL, relName, attrCount, attributes, primaryKeyIx);
+	SaveTableAttrInfo(NULL, relName, attrCount, attributes, primaryKeyIx, checkInIx, checkInStrs);
 	return OK;
 }
 
@@ -189,6 +189,13 @@ RC_Return SM_Manager::GetTableAttrInfo(const char*dbName, const char * relName, 
 	if (fin) {
 		fin >> attrCount;
 		fin >> primaryKeyIx;
+		fin >> checkInIxBuffer;
+		int checkInSize; fin >> checkInSize;
+		checkInStrsBuffer.clear();
+		for (size_t i = 0; i < checkInSize; i++)
+		{
+			string str; fin >> str; checkInStrsBuffer.push_back(str);
+		}
 		attributes = new AttrInfo[attrCount];
 		for (size_t i = 0; i < attrCount; i++)
 		{
@@ -211,7 +218,7 @@ RC_Return SM_Manager::GetTableAttrInfo(const char*dbName, const char * relName, 
 	}
 }
 
-RC_Return SM_Manager::SaveTableAttrInfo(const char * dbName, const char * relName, int attrCount, AttrInfo * attributes, int primaryKeyIx)
+RC_Return SM_Manager::SaveTableAttrInfo(const char * dbName, const char * relName, int attrCount, AttrInfo * attributes, int primaryKeyIx, int checkInIx, std::vector<string> checkInStrs)
 {
 	if (!dbName)
 	{
@@ -220,6 +227,12 @@ RC_Return SM_Manager::SaveTableAttrInfo(const char * dbName, const char * relNam
 	ofstream fout((std::string(dbName) + "\\" + relName + ".attr").c_str());
 	fout << attrCount << endl;
 	fout << primaryKeyIx << endl;
+	fout << checkInIx << endl;
+	fout << checkInStrs.size() << endl;
+	for (string str : checkInStrs)
+	{
+		fout << str << endl;
+	}
 	for (size_t i = 0; i < attrCount; i++)
 	{
 		fout << attributes[i].attrName << endl;
@@ -236,6 +249,13 @@ RC_Return SM_Manager::DropTableAttrInfo(const char * dbName, const char * relNam
 	string str1 = string("_") + dbName;
 	const char * _dbName = str1.c_str();
 	remove((string(_dbName)+"\\"+relName).c_str());
+	return OK;
+}
+
+RC_Return SM_Manager::GetCheckIn(int & checkInIx, std::vector<string> & checkInStrs)
+{
+	checkInIx = checkInIxBuffer;
+	checkInStrs = checkInStrsBuffer;
 	return OK;
 }
 

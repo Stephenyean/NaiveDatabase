@@ -443,6 +443,7 @@ column_type:
 	|	DOUBLE { $$ = ColumnDefinition::DFLOAT; }
 	|	CHAR { $$ = ColumnDefinition::STRING; }
 	|   VARCHAR { $$ = ColumnDefinition::VARCHAR; }
+	|	DATE { $$ = ColumnDefinition::DDATE; }
 	;
 
 /******************************
