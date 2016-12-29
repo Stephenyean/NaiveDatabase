@@ -499,9 +499,7 @@ RC RM_FileScan::OpenScan(const RM_FileHandle& fileHandle,
 		return ERROR;
 	int index;
 	b = fileHandle.bpm->getPage(fileHandle.fileID, 1, index);
-	bitMap = (char*)
-		
-		sizeof(Page_Head);
+	bitMap = (char*)b +	sizeof(Page_Head);
 	return OK;
 }
 

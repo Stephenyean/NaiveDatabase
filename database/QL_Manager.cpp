@@ -22,11 +22,13 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 	if (relName == NULL)
 	{
 		//auto e = new vector<int>;
+		cout << "relation is null\n";
 		return QL_NULL_ERROR;
 	}
 
 	if (!smm->IsTableExists(relName))
 	{
+		cout << "Table doesn't exist\n";
 		return QL_TABLE_NOT_EXIST_ERROR;
 	}
 
@@ -43,14 +45,34 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 	RC rc;
 	int attrCount = -1;
 	AttrInfo* attrInfo;
-	if ((rc = smm->GetTableAttrInfo(smm->getWork_Database().c_str(), relName, attrCount, attrInfo)))
+	int primaryIndex;
+	if ((rc = smm->GetTableAttrInfo(smm->getWork_Database().c_str(), relName, attrCount, attrInfo, primaryIndex)))
 	{
 		cout << "Error to get Table Attr Info\n";
 		return rc;
 	}
+
+	for (int i = 0; i < values.size(); i++)
+	{
+		if (values[i].type != AttrType::NUL && attrInfo[i].attrType != values[i].type)
+		{
+			if (attrInfo[i].attrType == STRING && values[i].type == VARCHAR)
+				continue;
+			if (attrInfo[i].attrType == VARCHAR && values[i].type == STRING)
+				continue;
+			cout << "Type Error\n";
+			return ERROR;
+		}
+		if (attrInfo[i].notnull && (values[i].type == AttrType::NUL))
+		{
+			cout << attrInfo[i].attrName << " shouldn't be null" << endl;
+			return ERROR;
+		}
+	}
 	
 	if (!(attrCount == nValues))
 	{
+		cout << "arguments not enough\n";
 		return QL_INCORRECT_ATTR_COUNT;
 	}
 
@@ -76,8 +98,17 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 			return rc;
 		}
 	}
-
-	
+	assert(primaryIndex < (int)values.size());
+	if (primaryIndex >= 0)
+	{
+		IX_IndexScan scan;
+		if ((rc = scan.OpenScan(ixIndexHandle[primaryIndex], CompOp::EQ_OP, values[primaryIndex].data)) == OK)
+		{
+			cout << "Duplicate Primary Key\n";
+			return ERROR;
+		}
+		scan.CloseScan();
+	}
 	char* pData = new char[recordSize + nValues];
 	
 	memset(pData, 0, recordSize + nValues);
@@ -411,6 +442,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			int conditionAttrLength = attrInfo[0][indexAttr].attrLength;
 			char* data = new char[conditionAttrLength];
 			memset(data, 0, conditionAttrLength);
+			
 			int copyLength = 4;
 			if (conditions[iCondition].rhsValue.type == STRING || conditions[iCondition].rhsValue.type == VARCHAR)
 				copyLength = strlen((char*)conditions[iCondition].rhsValue.data) + 1;

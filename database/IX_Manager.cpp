@@ -864,13 +864,25 @@ RC IX_IndexScan::OpenScan (const IX_IndexHandle &indexHandle, CompOp compOp, voi
 	currentPage = indexHandle.ixHead->rootPage;
 	attrLength = indexHandle.ixHead->attrLength;
 	attrtype = indexHandle.ixHead->attrType;
+	if (compOp == CompOp::ISNULL_OP)
+	{
+		this->compOp = CompOp::EQ_OP;
+		if (attrtype == DINT)
+		{
+			*(int*)value = -99999999;
+		}
+		else
+		{
+			char * value2 = (char*)value;
+			value2[0] = '\n';
+			value2[1] = '\n';
+			value2[2] = '\0';
+		}
+	}
 	RC rc = SearchEntry(currentPage, currentPosition);
 	if (rc != 0)
 	{
-		cout << "[info] error to open index sacn\n";
-		currentPage = -1;
-		currentPosition = -1;
-		return ERROR;
+		return rc;
 	}
 	b = indexHandle.bpm->getPage(indexHandle.fileID, currentPage, index);
 	scanIndex = index;
@@ -979,7 +991,7 @@ RC IX_IndexScan::SearchEntry(int& pageNum, int& position)
 			{
 				if (compOp == ISNULL_OP)
 					keyValue = -99999999;
-				if (satisfiesCondition(keyArray[j], keyValue))
+				if ((compOp == ISNULL_OP && keyValue == keyArray[j]) || satisfiesCondition(keyArray[j], keyValue))
 				{
 					found = true;
 					position = j;
@@ -995,7 +1007,7 @@ RC IX_IndexScan::SearchEntry(int& pageNum, int& position)
 			{
 				if (compOp == ISNULL_OP)
 					keyValue = "\n\n\0";
-				if (satisfiesCondition(string(keyArray + j * attrLength), string(keyValue)))
+				if ((compOp == ISNULL_OP && string(keyArray + j * attrLength) == string("\n\n")) || satisfiesCondition(string(keyArray + j * attrLength), string(keyValue)))
 				{
 					found = true;
 					position = j;

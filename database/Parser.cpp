@@ -255,6 +255,13 @@ void Parser::processInsert(hsql::InsertStatement *stmt){
 					myValues.push_back(value);
 					break;
 				}
+				case(kExprNull): {
+					Value value;
+					value.type = AttrType::NUL;
+					value.data = (void*)(new int[1]);
+					myValues.push_back(value);
+					break;
+				}
 				default:
 					break;
 			}
