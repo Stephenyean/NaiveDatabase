@@ -2282,7 +2282,7 @@ yyreduce:
 		(yyval.update_stmt) = new UpdateStatement();
 		(yyval.update_stmt)->table = (yyvsp[-3].table);
 		(yyval.update_stmt)->updates = (yyvsp[-1].update_vec);
-		(yyval.update_stmt)->where = (yyvsp[0].expr_vec);
+		(yyval.update_stmt)->whereClause = (yyvsp[0].expr_vec);
 	}
 #line 2288 "bison_parser.cpp" /* yacc.c:1646  */
     break;
