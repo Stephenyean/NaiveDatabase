@@ -167,7 +167,7 @@ RC IX_IndexHandle::RecursiveInsertEntry(int pageNum, void *pData, const RID &rid
 					cout << "[info] insert index " << keyData << endl;
 				}
 			}
-			else if (ixHead->attrType == STRING || ixHead->attrType == VARCHAR)
+			else if (ixHead->attrType == STRING || ixHead->attrType == DDATE || ixHead->attrType == VARCHAR)
 			{
 				char* keyData = (char*)pData;
 				char* keyArray = (char*)((char*)b + sizeof(IX_Page_head));
@@ -271,7 +271,7 @@ RC IX_IndexHandle::RecursiveInsertEntry(int pageNum, void *pData, const RID &rid
 				if (pageNumIsRoot)
 					pageHead->parentPage = parent;
 			}
-			else if (ixHead->attrType == STRING || ixHead->attrType == VARCHAR)
+			else if (ixHead->attrType == STRING || ixHead->attrType == DDATE || ixHead->attrType == VARCHAR)
 			{
 				char* keyArray = (char*)((char*)b + sizeof(IX_Page_head));
 				IX_Node* nodeArray = (IX_Node*)((char*)keyArray + ixHead->attrLength * ixHead->degree);
@@ -385,7 +385,7 @@ RC IX_IndexHandle::RecursiveSplitNode(int pageNum, int newPageNum, void* pData, 
 			keyArray = nullptr;
 			nodeArray = nullptr;
 		}
-		else if (ixHead->attrType == STRING || ixHead->attrType == VARCHAR)
+		else if (ixHead->attrType == STRING || ixHead->attrType  == DDATE || ixHead->attrType == VARCHAR)
 		{
 			char* keyArray = (char*)((char*)b + sizeof(IX_Page_head));
 			keyArray[0] = *(int*)pData;
@@ -480,7 +480,7 @@ RC IX_IndexHandle::RecursiveSplitNode(int pageNum, int newPageNum, void* pData, 
 				if (pageNumIsRoot)
 					pageHead->parentPage = parent2;
 			}
-			else if (ixHead->attrType == STRING || ixHead->attrType == VARCHAR)
+			else if (ixHead->attrType == STRING || ixHead->attrType == DDATE || ixHead->attrType == VARCHAR)
 			{
 				char* keyArray = (char*)((char*)b + sizeof(IX_Page_head));
 				char* keyData = (char*)pData;
@@ -576,7 +576,7 @@ RC IX_IndexHandle::RecursiveSplitNode(int pageNum, int newPageNum, void* pData, 
 				keyArray = nullptr;
 				nodeArray = nullptr;
 			}
-			else if (ixHead->attrType == STRING || ixHead->attrType == VARCHAR)
+			else if (ixHead->attrType == STRING || ixHead->attrType == DDATE || ixHead->attrType == VARCHAR)
 			{
 				char* keyData = (char*)pData;
 				char* keyArray = (char*)((char*)b + sizeof(IX_Page_head));
@@ -646,7 +646,7 @@ RC IX_IndexHandle::getPosition(void* pData, int& position, BufType b)
 		keyArray = nullptr;
 		nodeArray = nullptr;
 	}
-	else if (ixHead->attrType == STRING || ixHead->attrType == VARCHAR)
+	else if (ixHead->attrType == STRING || ixHead->attrType == DDATE || ixHead->attrType == VARCHAR)
 	{
 		char* keyData = (char*)pData;
 		char* keyArray = (char*)((char*)b + sizeof(IX_Page_head));
@@ -685,7 +685,7 @@ RC IX_IndexHandle::getMiddleData(void* pData, BufType b, int position, void* p)
 		keyArray = nullptr;
 		nodeArray = nullptr;
 	}
-	else if (ixHead->attrType == STRING || ixHead->attrType == VARCHAR)
+	else if (ixHead->attrType == STRING || ixHead->attrType == DDATE || ixHead->attrType == VARCHAR)
 	{
 		char* keyArray = (char*)((char*)b + sizeof(IX_Page_head));
 		IX_Node* nodeArray = (IX_Node*)((char*)keyArray + ixHead->attrLength * ixHead->degree);
@@ -783,7 +783,7 @@ RC IX_IndexHandle::DeleteEntry  (void *pData, const RID &rid)  // Delete index e
 
 		}
 	}
-	else if (ixHead->attrType == STRING || ixHead->attrType == VARCHAR)
+	else if (ixHead->attrType == STRING || ixHead->attrType == DDATE || ixHead->attrType == VARCHAR)
 	{
 		char* keyArray = (char*)((char *)b + sizeof(IX_Page_head));
 		char* keyData = (char*)pData;
@@ -907,7 +907,7 @@ RC IX_IndexScan::SearchEntry(int& pageNum, int& position)
 	{
 		IX_Node* nodeArray = (IX_Node*)((char*)b + sizeof(IX_Page_head) + attrLength*indexHandle.ixHead->degree);
 		
-		if (compOp == LE_OP || compOp == LT_OP || compOp == ISNULL_OP)
+		if (compOp == LE_OP || compOp == LT_OP || compOp == ISNULL_OP || compOp == CompOp::LIKE_OP)
 		{
 			pageNum = nodeArray[0].nextPage;
 		}
@@ -941,7 +941,7 @@ RC IX_IndexScan::SearchEntry(int& pageNum, int& position)
 					}
 				}
 			}
-			else if (attrtype == STRING || attrtype == VARCHAR)
+			else if (attrtype == STRING || attrtype  == DDATE || attrtype == VARCHAR)
 			{
 				char* keyValue = (char*)value;
 				char* keyArray = (char*)((char*)b + sizeof(IX_Page_head));
@@ -999,7 +999,7 @@ RC IX_IndexScan::SearchEntry(int& pageNum, int& position)
 				}
 			}
 		}
-		else if (attrtype == STRING || attrtype ==  VARCHAR)
+		else if (attrtype == STRING || attrtype == DDATE || attrtype ==  VARCHAR)
 		{
 			char* keyValue = (char*)value;
 			char* keyArray = (char*)((char*)b + sizeof(IX_Page_head));
@@ -1047,6 +1047,7 @@ bool IX_IndexScan::satisfiesCondition(T key, T value) {
 	case NE_OP:
 	case NO_OP:
 	case NOTNULL_OP:
+	case LIKE_OP:
 		match = true;
 		break;
 	default:
@@ -1119,7 +1120,7 @@ RC IX_IndexScan::GetNextEntry(RID &rid, bool DeleteMode)                        
 				rc = ERROR;
 			keyArray = nullptr;
 		}
-		else if (attrtype == STRING || attrtype == VARCHAR)
+		else if (attrtype == STRING || attrtype == DDATE || attrtype == VARCHAR)
 		{
 			char* keyValue = (char*)value;
 			char* keyArray = (char*)((char*)b + sizeof(IX_Page_head));
@@ -1168,7 +1169,7 @@ RC IX_IndexScan::DeleteCurrentEntry()
 		}
 		indexHandle.bpm->markDirty(scanIndex);
 	}
-	else if (attrtype == STRING || attrtype == VARCHAR)
+	else if (attrtype == STRING || attrtype == DDATE || attrtype == VARCHAR)
 	{
 		char* keyValue = (char*)value;
 		char* keyArray = (char*)((char*)b + sizeof(IX_Page_head));

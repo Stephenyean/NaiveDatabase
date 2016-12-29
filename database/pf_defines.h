@@ -71,6 +71,7 @@ enum AttrType {
 	DFLOAT,
 	STRING,
 	VARCHAR,
+	DDATE,
 	STAR,
 	NUL
 };
