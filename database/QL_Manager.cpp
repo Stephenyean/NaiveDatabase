@@ -62,6 +62,11 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 				continue;
 			if (attrInfo[i].attrType == VARCHAR && values[i].type == STRING)
 				continue;
+			if (attrInfo[i].attrType == VARCHAR && values[i].type == DDATE)
+				continue;
+			if (attrInfo[i].attrType == DDATE && values[i].type == VARCHAR)
+				continue;
+			continue;
 			std::cout << "Type Error\n";
 			return ERROR;
 		}
@@ -198,6 +203,9 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 		return QL_DATABASE_NOT_OPEN;
 	}
 
+	//static int mmm = 1;
+	//cout << endl << endl << mmm<<endl;
+	//mmm++;
 	// judge if tables exist
 	for (int i = 0; i < nRelations; i++)
 	{
@@ -308,7 +316,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 	{
 		for (int i = 0; i < nConditions; i++)
 		{
-			if (conditions[i].op == EQ_OP && conditions[i].bRhsIsAttr == 0)
+			if (conditions[i].op == EQ_OP && conditions[i].bRhsIsAttr!=1)
 			{
 				iCondition = i;
 				foundCondition = true;
@@ -476,10 +484,10 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			if (conditions[iCondition].rhsValue.type == STRING || conditions[iCondition].rhsValue.type == DDATE || conditions[iCondition].rhsValue.type == VARCHAR)
 				copyLength = strlen((char*)conditions[iCondition].rhsValue.data) + 1;
 			memcpy((void*)data, (void*)conditions[iCondition].rhsValue.data, copyLength);
-			CompOp testOp = conditions[iCondition].op;
-			if (conditions[iCondition].rhsValue.type == STRING)
-				testOp = NO_OP;
-			if (rc = scan1.OpenScan(ixIndexHandle, testOp, data))
+			//CompOp testOp = conditions[iCondition].op;
+			//if (conditions[iCondition].rhsValue.type == STRING)
+			//	testOp = NO_OP;
+			if (rc = scan1.OpenScan(ixIndexHandle, conditions[iCondition].op, data))
 			{
 				//std::cout << "Error to Open scan\n" << endl;
 				return rc;
@@ -1112,10 +1120,21 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 						}
 						int offset1 = getOffset(indexRelate, indexAttr, attrInfo);
 						int offset2 = getOffset(indexRelate2, indexAttr2, attrInfo);
-						if (!isRecordSatisfied((void*)(rec1.pData + attrCount[indexRelate] + offset1), conditions[i].op, (void*)(rec2.pData + attrCount[indexRelate2] + offset2), attrInfo[indexRelate][indexAttr].attrType))
+						if (realRelate1 == indexRelate)
 						{
-							satisfied = false;
-							break;
+							if (!isRecordSatisfied((void*)(rec1.pData + attrCount[indexRelate] + offset1), conditions[i].op, (void*)(rec2.pData + attrCount[indexRelate2] + offset2), attrInfo[indexRelate][indexAttr].attrType))
+							{
+								satisfied = false;
+								break;
+							}
+						}
+						else
+						{
+							if (!isRecordSatisfied((void*)(rec2.pData + attrCount[indexRelate] + offset1), conditions[i].op, (void*)(rec1.pData + attrCount[indexRelate2] + offset2), attrInfo[indexRelate][indexAttr].attrType))
+							{
+								satisfied = false;
+								break;
+							}
 						}
 					}
 					vector<string> result;
@@ -1302,6 +1321,32 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			}
 		}
 	}
+	//for (auto rv : outputs)
+	//{
+	//	for (auto rec : rv)
+	//	{
+	//		cout << setw(25) << std::left << rec;
+	//	}
+	//	cout << endl;
+	//}
+	// clear workspace
+	//int fuck = false;
+	//int fuckP = -1;
+	//string fuckV;
+	//if (outputs.size() > 20)
+	//{
+	//	for (int i = 2; i < outputs.size(); i++)
+	//	{
+	//		if (outputs[i][0] < outputs[i - 1][0])
+	//		{
+	//			fuck = true;
+	//			fuckP = i;
+	//			fuckV = outputs[i][0];
+	//			//break;
+	//		}
+	//	}
+	//}
+	//cout << fuckP << " "<<fuckV << endl;
 	for (auto rv : outputs)
 	{
 		for (auto rec : rv)
@@ -1310,7 +1355,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 		}
 		cout << endl;
 	}
-	// clear workspace
+	//assert(fuck == false);
 	delete[]rmFileHandle;
 	rmFileHandle = nullptr;
 	ixm->CloseIndex(ixIndexHandle);
@@ -1344,7 +1389,7 @@ RC QL_Manager::print(RM_Record& record, int* attrCount, int nRelate, vector<RelA
 				result.push_back(std::to_string(*(int*)(record.pData + attrCount[nRelate] + attrOffset)));
 
 			}
-			else if (attrInfo[nRelate][i].attrType == AttrType::STRING)
+			else if (attrInfo[nRelate][i].attrType == AttrType::STRING || attrInfo[nRelate][i].attrType == AttrType::DDATE)
 			{
 				//std::cout << (record.pData + attrCount[nRelate] + attrOffset);
 				result.push_back(std::string(record.pData + attrCount[nRelate] + attrOffset));

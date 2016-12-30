@@ -181,6 +181,7 @@ RC IX_IndexHandle::RecursiveInsertEntry(int pageNum, void *pData, const RID &rid
 					nodeArray[i] = nodeArray[i - 1];
 				}
 				int copyLength = strlen((char*)keyData) + 1;
+				memset((void*)(keyArray + ixHead->attrLength * position), 0, ixHead->attrLength);
 				memcpy((void*)(keyArray + ixHead->attrLength * position), (void*)keyData, copyLength);
 				//keyArray[position] = keyData;
 				nodeArray[position].nextPage = -1;
@@ -292,10 +293,11 @@ RC IX_IndexHandle::RecursiveInsertEntry(int pageNum, void *pData, const RID &rid
 					}
 					for (int j = (N + 1) / 2 - 1; j > position; j--)
 					{
-						memcpy(newKeyArray + ixHead->attrLength*j, keyArray + ixHead->attrLength*(j - 1), ixHead->attrLength);
+						memcpy(keyArray + ixHead->attrLength*j, keyArray + ixHead->attrLength*(j - 1), ixHead->attrLength);
 						nodeArray[j] = nodeArray[j - 1];
 					}
 					int copyLength = strlen((char*)pData) + 1;
+					memset(keyArray + ixHead->attrLength*position, 0, copyLength);
 					memcpy(keyArray + ixHead->attrLength*position, pData, copyLength);
 					nodeArray[position].nextPage = -1;
 					nodeArray[position].rid = rid;
@@ -363,7 +365,7 @@ RC IX_IndexHandle::RecursiveSplitNode(int pageNum, int newPageNum, void* pData, 
 	// judge if pageNum is rootPage
 	if (ixHead->rootPage == pageNum)
 	{
-		cout << "split root\n";
+		//cout << "split root\n";
 		int index;
 		BufType b = bpm->allocPage(this->fileID, ixHead->numPages, index, false);
 		ixHead->rootPage = ixHead->numPages;
@@ -388,7 +390,9 @@ RC IX_IndexHandle::RecursiveSplitNode(int pageNum, int newPageNum, void* pData, 
 		else if (ixHead->attrType == STRING || ixHead->attrType  == DDATE || ixHead->attrType == VARCHAR)
 		{
 			char* keyArray = (char*)((char*)b + sizeof(IX_Page_head));
-			keyArray[0] = *(int*)pData;
+			//keyArray[0] = (char*)pData;
+			int copyLength = strlen((char*)pData)+1;
+			memcpy(keyArray, pData, copyLength);
 			IX_Node* nodeArray = (IX_Node*)((char*)keyArray + ixHead->degree * ixHead->attrLength);
 			nodeArray[0].nextPage = pageNum;
 			nodeArray[1].nextPage = newPageNum;
@@ -541,7 +545,7 @@ RC IX_IndexHandle::RecursiveSplitNode(int pageNum, int newPageNum, void* pData, 
 				if (parent3 == ixHead->rootPage)
 					pageNumIsRoot = true;
 				int parent2 = pageHead->parentPage;
-				RC rc = RecursiveSplitNode(parent3, ixHead->numPages - 1, (void*)(&newData), parent2);
+				RC rc = RecursiveSplitNode(parent3, ixHead->numPages - 1, (void*)(newData), parent2);
 				newPageHead->parentPage = parent2;
 				if (pageNumIsRoot)
 					pageHead->parentPage = parent2;
@@ -950,7 +954,7 @@ RC IX_IndexScan::SearchEntry(int& pageNum, int& position)
 					pageNum = nodeArray[0].nextPage;
 					found = true;
 				}
-				if (string(keyArray + (pageHead->numEntries - 1)*attrLength) < string(keyValue))
+				else if (string(keyArray + (pageHead->numEntries - 1)*attrLength) < string(keyValue))
 				{
 					pageNum = nodeArray[pageHead->numEntries].nextPage;
 					found = true;
@@ -1135,6 +1139,7 @@ RC IX_IndexScan::GetNextEntry(RID &rid, bool DeleteMode)                        
 			char* keyArray = (char*)((char*)b + sizeof(IX_Page_head));
 			if (satisfiesCondition(string(keyArray + currentPosition * attrLength), string(keyValue)))
 			{
+				//cout << string(keyArray + currentPosition * attrLength) << endl;
 				rid.setPageNum(nodeArray[currentPosition].rid.getPageNum());
 				rid.setSlotNum(nodeArray[currentPosition].rid.getSlotNum());
 				if (DeleteMode)
