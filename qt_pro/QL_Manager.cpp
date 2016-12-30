@@ -1488,7 +1488,11 @@ RC QL_Manager::Update(const char * relName, const std::vector<RelAttr>& updAttr,
 	{
 		if (bIsValue[i])
 		{
-			if (rhsValue[i].type == DINT && !attributes[i].attrType == rhsValue[i].type)
+			if (rhsValue[i].type == DINT && !attributes[i].attrType == DINT)
+			{
+				attrError = true;
+			}
+			else if ((rhsValue[i].type == STRING || rhsValue[i].type == DDATE || rhsValue[i].type == VARCHAR) && !(attributes[i].attrType == STRING))
 			{
 				attrError = true;
 			}
