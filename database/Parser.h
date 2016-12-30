@@ -25,15 +25,13 @@ public:
 
 private:
 	QL_Manager* qlm;
-	//QL_Manager* qlm2;
 	FileManager *fm;
 	BufPageManager *bpm;
 	RM_Manager *rmm;
 	IX_Manager *ixm;
 	SM_Manager *smm;
-	
 	void packConditions(const char * relName, std::vector<hsql::Expr*>* whereClause, std::vector<Condition> & conditions);
 	void getFiles(string path, vector<string>& files);
-	std::string ReplaceAll(std::string & str, const std::string& from, const std::string& to);
+	std::string ReplaceAll(std::string & str, const std::string & from, const std::string & to);
 	bool checkPK(const char * relName, const vector<Value> & values);
 };

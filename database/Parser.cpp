@@ -39,6 +39,27 @@ void Parser::parse()
 		cout << ">> ";
 		getline(cin, sqlQuery);
 		ret = parseSQL(sqlQuery);
+		if (ret == 0)
+		{
+			for (auto e : IdMap::fileIDMap)
+			{
+				int index;
+				BufType b = bpm->getPage(e.second, 0, index);
+				File_Head* fileHead = (File_Head*)b;
+				int pages = fileHead->numPages;
+				for (int i = 0; i < pages; i++)
+				{
+					b = bpm->getPage(e.second, i, index);
+					bpm->writeBack(index);
+				}
+			}
+			//bpm->close();
+			for (auto e : IdMap::fileIDMap)
+			{
+				cout << e.first << endl;
+				fm->closeFile(e.second);
+			}
+		}
 	}
 }
 
@@ -550,7 +571,7 @@ bool Parser::checkPK(const char * relName, const vector<Value> & values)
 	// get all attrInfos
 	int attrCount;
 	AttrInfo * attributes = NULL;
-	int primaryKeyIx; 
+	int primaryKeyIx;
 	smm->GetTableAttrInfo(smm->getWork_Database().c_str(), relName, attrCount, attributes, primaryKeyIx);
 	if (primaryKeyIx == -1)
 	{

@@ -1215,7 +1215,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 		bool found = false;
 		for (int i = 0; i < 2; i++)
 		{
-			if (results[0][i] == string(stmt->groupBy->columns->operator[](1)->getName()))
+			if (results[0][i] == string(stmt->selectList->operator[](0)->getName()))
 			{
 				byCol = i;
 				found = true;
