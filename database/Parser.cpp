@@ -280,6 +280,8 @@ void Parser::processDrop(hsql::DropStatement *stmt)
 void Parser::processInsert(hsql::InsertStatement *stmt){
 	
 	//stmt->values;
+	int checkInIx; std::vector<string> checkInStrs;
+	smm->GetCheckIn(checkInIx, checkInStrs);
 	for(int i=0; i<stmt->values->size(); i++){
 		vector<Value> myValues;
 		for(int j=0; j<stmt->values->operator[](i)->size(); j++){
@@ -293,11 +295,26 @@ void Parser::processInsert(hsql::InsertStatement *stmt){
 					break;
 				}
 				case(kExprLiteralString):{
+
 					Value value;
 					value.type = STRING;
 					value.data = (void*)new char[strlen(localValue->name) + 1];// localValue->name;
 					memset(value.data, 0, strlen(localValue->name) + 1);
 					memcpy(value.data, localValue->name, strlen(localValue->name) + 1);
+					if (checkInIx == j)
+					{
+						bool found = false;
+						for (string str : checkInStrs)
+						{
+							if (!found)
+								found = str == string((char *)value.data);
+						}
+						if (!found)
+						{
+							cout << "Check In Failed in Ix " << checkInIx << endl;
+							return;
+						}
+					}
 					myValues.push_back(value);
 					break;
 				}
@@ -485,22 +502,6 @@ void Parser::packConditions(const char * relName, std::vector<hsql::Expr*>* wher
 			break;
 		case(hsql::Expr::OperatorType::LIKE):
 			localCondition.op = CompOp::LIKE_OP;
-			// replace other regex identifier
-			vector<string> regexIds = { "\\", "(", ")", "?", ":", "[", "]", "*", "+","^", "$", "|" };
-			string givenValue = string((char *)localCondition.rhsValue.data);
-			for (string regexId : regexIds)
-			{
-				ReplaceAll(givenValue, regexId, "\\" + regexId);
-			}
-			// translate sql to regex
-			ReplaceAll(givenValue, "_", "(.)");
-			ReplaceAll(givenValue, "%", "(.)*");
-			// find match
-			char * data = new char[givenValue.size()+1];
-			memcpy(data, givenValue.c_str(), givenValue.size());
-			data[givenValue.size() + 1] = '\0';
-			delete[] localCondition.rhsValue.data;
-			localCondition.rhsValue.data = (void*)data;
 			break;
 		}
 
@@ -524,6 +525,25 @@ void Parser::packConditions(const char * relName, std::vector<hsql::Expr*>* wher
 				tempValue.type = AttrType::NUL;
 			}
 			localCondition.rhsValue = tempValue;
+			if (localCondition.op == CompOp::LIKE_OP)
+			{
+				// replace other regex identifier
+				vector<string> regexIds = { "\\", "(", ")", "?", ":", "[", "]", "*", "+","^", "$", "|" };
+				string givenValue = string((char *)localValue->expr2->name);
+				for (string regexId : regexIds)
+				{
+					ReplaceAll(givenValue, regexId, "\\" + regexId);
+				}
+				// translate sql to regex
+				ReplaceAll(givenValue, "_", "(.)");
+				ReplaceAll(givenValue, "%", "(.)*");
+				// find match
+				char * data = new char[givenValue.size() + 1];
+				memcpy(data, givenValue.c_str(), givenValue.size());
+				data[givenValue.size()] = '\0';
+				delete[] localCondition.rhsValue.data;
+				localCondition.rhsValue.data = (void*)data;
+			}
 		}
 		else
 		{
