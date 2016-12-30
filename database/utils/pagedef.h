@@ -10,7 +10,7 @@
 /*
  * 一个页面中的字节数
  */
-#define PAGE_SIZE 8192
+#define PAGE_SIZE 65536
 /*
  * 一个页面中的整数个�?
  */
@@ -18,7 +18,7 @@
 /*
  * 页面字节数以2为底的指�?
  */
-#define PAGE_SIZE_IDX 13
+#define PAGE_SIZE_IDX 16
 #define MAX_FMT_INT_NUM 128
 //#define BUF_PAGE_NUM 65536
 #define MAX_FILE_NUM 128
