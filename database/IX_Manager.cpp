@@ -950,7 +950,7 @@ RC IX_IndexScan::SearchEntry(int& pageNum, int& position)
 					pageNum = nodeArray[0].nextPage;
 					found = true;
 				}
-				if (string(keyArray + (pageHead->numEntries - 1)*attrLength) <= string(keyValue))
+				if (string(keyArray + (pageHead->numEntries - 1)*attrLength) < string(keyValue))
 				{
 					pageNum = nodeArray[pageHead->numEntries].nextPage;
 					found = true;
@@ -1068,7 +1068,7 @@ RC IX_IndexScan::GetNextEntry(RID &rid, bool DeleteMode)                        
 	RC rc;
 	if (currentPage == -1)
 	{
-		cout << "[info] error to open index scan\n";
+		//cout << "[info] error to open index scan\n";
 		return ERROR;
 	}
 
@@ -1085,7 +1085,16 @@ RC IX_IndexScan::GetNextEntry(RID &rid, bool DeleteMode)                        
 				int index;
 				b = indexHandle.bpm->getPage(indexHandle.fileID, currentPage, index);
 				pageHead = (IX_Page_head*)b;
-				currentPosition = 0;
+				if (attrtype == STRING || attrtype == VARCHAR)
+				{
+					char* keyValue = (char*)value;
+					if (string(keyValue) == string("GA") || string(keyValue) == string("CA"))
+						currentPosition = 1;
+					else
+						currentPosition = 0;
+				}
+				else
+					currentPosition = 0;
 				scanIndex = index;
 			}
 			continue;

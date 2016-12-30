@@ -64,9 +64,34 @@ RC_Return SM_Manager::CreateDb(const char * dbName)
 
 RC_Return SM_Manager::DropDb(const char * dbName)
 {
+	BufPageManager* bpm = rmm->bpm;
+	for (auto e : IdMap::fileIDMap)
+	{
+		int index;
+		BufType b = bpm->getPage(e.second, 0, index);
+		File_Head* fileHead = (File_Head*)b;
+		int pages = fileHead->numPages;
+		//cout << e.first << endl;
+		for (int i = 0; i < pages; i++)
+		{
+			b = bpm->getPage(e.second, i, index);
+			bpm->markDirty(index);
+			bpm->writeBack(index);
+			b = bpm->getPage(e.second, i, index);
+		}
+
+	}
+	//bpm->close();
+	for (auto e : IdMap::fileIDMap)
+	{
+		//cout << e.first << endl;
+		rmm->fm->closeFile(e.second);
+	}
+	IdMap::fileIDMap.clear();
 	dbrelNameBuffer.clear();
 	// rm -r database
 	// set work database as null
+
 	string str1 = string("_") + dbName;
 	const char * _dbName = str1.c_str();
 	if (_access(_dbName, 0) != 0)
@@ -130,6 +155,30 @@ RC_Return SM_Manager::CreateTable(const char * relName, int attrCount, AttrInfo 
 
 RC_Return SM_Manager::DropTable(const char * relName)
 {
+	BufPageManager* bpm = rmm->bpm;
+	for (auto e : IdMap::fileIDMap)
+	{
+		int index;
+		BufType b = bpm->getPage(e.second, 0, index);
+		File_Head* fileHead = (File_Head*)b;
+		int pages = fileHead->numPages;
+		//cout << e.first << endl;
+		for (int i = 0; i < pages; i++)
+		{
+			b = bpm->getPage(e.second, i, index);
+			bpm->markDirty(index);
+			bpm->writeBack(index);
+			b = bpm->getPage(e.second, i, index);
+		}
+
+	}
+	//bpm->close();
+	for (auto e : IdMap::fileIDMap)
+	{
+		//cout << e.first << endl;
+		rmm->fm->closeFile(e.second);
+	}
+	IdMap::fileIDMap.clear();
 	dbrelNameBuffer.clear();
 	// rm table attrinfo
 	if (work_database.length() <= 0)

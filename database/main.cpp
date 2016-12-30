@@ -7,6 +7,9 @@
 #include <tchar.h>
 #include <fstream>
 #include <string>
+#include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
 using namespace std;
 void testIX();
 void testIX2();
@@ -15,15 +18,19 @@ void generateData(AttrType attrtype, char* file);
 int testParser(std::string query);
 int main()
 {
-	//generateData(DINT, "data.txt");
-	//testIX();
-	//QL_Manager* qlm;
-	// std::string query = "CREATE DATABASE ddd;";
-	// return testParser(query);
-	//generateData(STRING, "string.txt");
-	// testIX();
+
 	Parser parser;
 	parser.parse();
+	
+	//FILE* fin = fopen("./_orderDB/orders", "rb");
+	//int len = ftell(fin);
+	//char b[16390];
+	//fread(b, 16390, 1, fin);
+	//cout << b[16382] << endl;
+	//cout << b[16383] << endl;
+	//cout << b[16384] << endl;
+	//cout << b[16385] << endl;
+
 	return 0;
 }
 

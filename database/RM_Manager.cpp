@@ -33,8 +33,10 @@ RC RM_Manager::createFile(const char * filename, int recordSize, int attrCount)
 	fileHead->numPages = 1;
 	fileHead->recordSize = recordSize;
 	fileHead->nextFreePage = -1;
-	
-	fileHead->maxRecordNumPerPage = int((PAGE_SIZE - sizeof(File_Head)) / (recordSize + attrCount + 0.125));
+	int _offset = 0;
+	if ((attrCount % 4) != 0)
+		_offset = attrCount + (4 - attrCount % 4);
+	fileHead->maxRecordNumPerPage = int((PAGE_SIZE - sizeof(File_Head)) / (recordSize + _offset + 0.125));
 	fileHead->bitMapSize = fileHead->maxRecordNumPerPage / 8;
 	fileHead->attrCount = attrCount;
 	if ((fileHead->maxRecordNumPerPage % 8) != 0)

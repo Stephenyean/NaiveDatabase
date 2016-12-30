@@ -15,6 +15,7 @@ private:
 	int fd[MAX_FILE_NUM];
 	MyBitMap* fm;
 	MyBitMap* tm;
+	map<int, FILE*> idHandleMap;
 	int _createFile(const char* name) {
 		FILE* f = fopen(name, "a+");
 		if (f == NULL) {
@@ -25,11 +26,16 @@ private:
 		return 0;
 	}
 	int _openFile(const char* name, int fileID) {
+		/*
 		int f = open(name, O_RDWR);
 		if (f == -1) {
 			return -1;
 		}
 		fd[fileID] = f;
+		*/
+		FILE* f = fopen(name, "rb+");
+		idHandleMap[fileID] = f;
+		f = nullptr;
 		return 0;
 	}
 public:
@@ -50,6 +56,7 @@ public:
 	* 返回:成功操作返回0
 	*/
 	int writePage(int fileID, int pageID, BufType buf, int off) {
+		/*
 		int f = fd[fileID];
 		off_t offset = pageID;
 		offset = (offset << PAGE_SIZE_IDX);
@@ -59,6 +66,16 @@ public:
 		}
 		BufType b = buf + off;
 		error = write(f, (void*)b, PAGE_SIZE);
+		*/
+		FILE* f = idHandleMap[fileID];
+		off_t offset = pageID;
+		offset = (offset << PAGE_SIZE_IDX);
+		off_t error = fseek(f, offset, SEEK_SET);
+		if (error != 0) {
+			return -1;
+		}
+		BufType b = buf + off;
+		error = fwrite((void*)b, 1, PAGE_SIZE, f);
 		return 0;
 	}
 	/*
@@ -72,7 +89,7 @@ public:
 	*/
 	int readPage(int fileID, int pageID, BufType buf, int off) {
 		//int f = fd[fID[type]];
-		int f = fd[fileID];
+		/*int f = fd[fileID];
 		off_t offset = pageID;
 		offset = (offset << PAGE_SIZE_IDX);
 		off_t error = lseek(f, offset, SEEK_SET);
@@ -81,6 +98,16 @@ public:
 		}
 		BufType b = buf + off;
 		error = read(f, (void*)b, PAGE_SIZE);
+		*/
+		FILE* f = idHandleMap[fileID];
+		off_t offset = pageID;
+		offset = (offset << PAGE_SIZE_IDX);
+		off_t error = fseek(f, offset, SEEK_SET);
+		if (error != 0) {
+			return -1;
+		}
+		BufType b = buf + off;
+		error = fread((void*)b, 1, PAGE_SIZE, f);
 		return 0;
 	}
 	/*
@@ -91,8 +118,10 @@ public:
 	*/
 	int closeFile(int fileID) {
 		fm->setBit(fileID, 1);
-		int f = fd[fileID];
-		close(f);
+		//int f = fd[fileID];
+		//close(f);
+		FILE* f = idHandleMap[fileID];
+		fclose(f);
 		return 0;
 	}
 	/*

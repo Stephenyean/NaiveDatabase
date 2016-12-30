@@ -96,7 +96,7 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 		recordSize += attrInfo[i].attrLength;
 		if ((rc = ixm->OpenIndex(indexFileName.c_str(), i, ixIndexHandle[i])))
 		{
-			std::cout << "Error to open index " << i << endl;
+			//std::cout << "Error to open index " << i << endl;
 			return rc;
 		}
 	}
@@ -413,7 +413,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			void * value = (void*)(new int[1]);
 			if (rc = rmScan.OpenScan(rmFileHandle[0], attrInfo[0][0].attrType, attrInfo[0][0].attrLength, 0, CompOp::NO_OP, value))
 			{
-				std::cout << "Error to open rmscan \n";
+				//std::cout << "Error to open rmscan \n";
 				return ERROR;
 			}
 
@@ -465,7 +465,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			string indexFileName = smm->getWork_Database() + "\\" + relations[0];
 			if (rc = ixm->OpenIndex(indexFileName.c_str(), indexAttr, ixIndexHandle))
 			{
-				std::cout << "Error to open Index " << indexAttr << endl;
+				//std::cout << "Error to open Index " << indexAttr << endl;
 				return ERROR;
 			}
 			int conditionAttrLength = attrInfo[0][indexAttr].attrLength;
@@ -476,9 +476,12 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			if (conditions[iCondition].rhsValue.type == STRING || conditions[iCondition].rhsValue.type == DDATE || conditions[iCondition].rhsValue.type == VARCHAR)
 				copyLength = strlen((char*)conditions[iCondition].rhsValue.data) + 1;
 			memcpy((void*)data, (void*)conditions[iCondition].rhsValue.data, copyLength);
-			if (rc = scan1.OpenScan(ixIndexHandle, conditions[iCondition].op, data))
+			CompOp testOp = conditions[iCondition].op;
+			if (conditions[iCondition].rhsValue.type == STRING)
+				testOp = NO_OP;
+			if (rc = scan1.OpenScan(ixIndexHandle, testOp, data))
 			{
-				std::cout << "Error to Open scan\n" << endl;
+				//std::cout << "Error to Open scan\n" << endl;
 				return rc;
 			}
 			RID rid;
@@ -610,23 +613,23 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 				string indexFileName1 = smm->getWork_Database() + "\\" + relations[indexRelate];
 				if (rc = ixm->OpenIndex(indexFileName1.c_str(), indexAttr, ixIndexHandle))
 				{
-					std::cout << "Error to open Index " << indexAttr << endl;
+					//std::cout << "Error to open Index " << indexAttr << endl;
 					return ERROR;
 				}
 				string indexFileName = smm->getWork_Database() + "\\" + relations[indexRelate2];
 				if (rc = ixm->OpenIndex(indexFileName.c_str(), indexAttr2, ixIndexHandle2))
 				{
-					std::cout << "Error to open Index " << indexAttr2 << endl;
+					//std::cout << "Error to open Index " << indexAttr2 << endl;
 					return ERROR;
 				}
 				if (rc = scan1.OpenScan(ixIndexHandle, NO_OP, (void*)(new int[1])))
 				{
-					std::cout << "Error to open ixscan1 \n";
+					//std::cout << "Error to open ixscan1 \n";
 					return ERROR;
 				}
 				if (rc = scan2.OpenScan(ixIndexHandle2, NO_OP, (void*)(new int[1])))
 				{
-					std::cout << "Error to open ixscan2 \n";
+					//std::cout << "Error to open ixscan2 \n";
 					return ERROR;
 				}
 				RID rid1, rid2;
@@ -714,23 +717,23 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 				string indexFileName1 = smm->getWork_Database() + "\\" + relations[indexRelate];
 				if (rc = ixm->OpenIndex(indexFileName1.c_str(), indexAttr, ixIndexHandle))
 				{
-					std::cout << "Error to open Index " << indexAttr << endl;
+					//std::cout << "Error to open Index " << indexAttr << endl;
 					return ERROR;
 				}
 				string indexFileName = smm->getWork_Database() + "\\" + relations[indexRelate2];
 				if (rc = ixm->OpenIndex(indexFileName.c_str(), indexAttr2, ixIndexHandle2))
 				{
-					std::cout << "Error to open Index " << indexAttr2 << endl;
+					//std::cout << "Error to open Index " << indexAttr2 << endl;
 					return ERROR;
 				}
 				if (rc = scan1.OpenScan(ixIndexHandle, NO_OP, (void*)(new int[1])))
 				{
-					std::cout << "Error to open ixscan1 \n";
+					//std::cout << "Error to open ixscan1 \n";
 					return ERROR;
 				}
 				if (rc = scan2.OpenScan(ixIndexHandle2, NO_OP, (void*)(new int[1])))
 				{
-					std::cout << "Error to open ixscan2 \n";
+					//std::cout << "Error to open ixscan2 \n";
 					return ERROR;
 				}
 				RID rid1, rid2;
@@ -812,7 +815,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 				bool satisfied = true;
 				for (int i = 0; i < conditions.size(); i++)
 				{
-					if (i == iCondition) continue;
+					//if (i == iCondition) continue;
 					if (rc = findCorAttr(indexRelate, indexAttr, attrCount, attrInfo, conditions[i], relations, false))
 					{
 						std::cout << "Error to find correct attribute" << endl;
@@ -859,12 +862,12 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			}
 			if (rc = rmScan1.OpenScan(rmFileHandle[indexRelate], attrInfo[indexRelate][indexAttr].attrType, attrInfo[indexRelate][0].attrLength, 0, CompOp::NO_OP, value))
 			{
-				std::cout << "Error to open rmscan1 \n";
+				//std::cout << "Error to open rmscan1 \n";
 				return ERROR;
 			}
 			if (rc = rmScan2.OpenScan(rmFileHandle[indexRelate2], attrInfo[indexRelate2][indexAttr2].attrType, attrInfo[indexRelate2][0].attrLength, 0, CompOp::NO_OP, value))
 			{
-				std::cout << "Error to open rmscan2 \n";
+				//std::cout << "Error to open rmscan2 \n";
 				return ERROR;
 			}
 
@@ -927,7 +930,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			string indexFileName = smm->getWork_Database() + "\\" + relations[indexRelate];
 			if (rc = ixm->OpenIndex(indexFileName.c_str(), indexAttr, ixIndexHandle))
 			{
-				std::cout << "Error to open Index " << indexAttr << endl;
+				//std::cout << "Error to open Index " << indexAttr << endl;
 				return ERROR;
 			}
 			int conditionAttrLength = attrInfo[indexRelate][indexAttr].attrLength;
@@ -939,7 +942,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			memcpy((void*)data, (void*)conditions[iCondition].rhsValue.data, copyLength);
 			if (rc = scan1.OpenScan(ixIndexHandle, conditions[iCondition].op, data))
 			{
-				std::cout << "Error to Open scan\n" << endl;
+				//std::cout << "Error to Open scan\n" << endl;
 				return rc;
 			}
 			RID rid;
@@ -960,7 +963,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 				RM_FileScan rmScan2;
 				if (rc = rmScan2.OpenScan(rmFileHandle[realRelate2], attrInfo[indexRelate2][indexAttr2].attrType, attrInfo[indexRelate2][0].attrLength, 0, CompOp::NO_OP, new int[1]))
 				{
-					std::cout << "Error to open rmscan2 \n";
+					//std::cout << "Error to open rmscan2 \n";
 					return ERROR;
 				}
 				bool satisfied1 = true;
@@ -1414,7 +1417,7 @@ RC QL_Manager::Delete(const char *relName,            // relation to delete from
 	string indexFileName = smm->getWork_Database() + "\\" + relName;
 	if (rc = ixm->OpenIndex(indexFileName.c_str(), iIndex, ixIndexHandle))
 	{
-		std::cout << "Error to open Index " << iIndex << endl;
+		//std::cout << "Error to open Index " << iIndex << endl;
 		return ERROR;
 	}
 	int conditionAttrLength = attributes[iIndex].attrLength;

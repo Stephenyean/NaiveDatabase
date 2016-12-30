@@ -47,16 +47,20 @@ void Parser::parse()
 				BufType b = bpm->getPage(e.second, 0, index);
 				File_Head* fileHead = (File_Head*)b;
 				int pages = fileHead->numPages;
+				//cout << e.first << endl;
 				for (int i = 0; i < pages; i++)
 				{
 					b = bpm->getPage(e.second, i, index);
+					bpm->markDirty(index);
 					bpm->writeBack(index);
+					b = bpm->getPage(e.second, i, index);
 				}
+
 			}
 			//bpm->close();
 			for (auto e : IdMap::fileIDMap)
 			{
-				cout << e.first << endl;
+				//cout << e.first << endl;
 				fm->closeFile(e.second);
 			}
 		}
@@ -478,6 +482,7 @@ void Parser::packConditions(const char * relName, std::vector<hsql::Expr*>* wher
 			break;
 		case(hsql::Expr::OperatorType::GREATER_EQ):
 			localCondition.op = CompOp::GE_OP;
+			break;
 		case(hsql::Expr::OperatorType::LIKE):
 			localCondition.op = CompOp::LIKE_OP;
 			// replace other regex identifier
