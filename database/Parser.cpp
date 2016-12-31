@@ -8,7 +8,7 @@ using namespace hsql;
 using namespace std;
 
 
-
+vector<vector<string>> Parser::parseResults;
 Parser::Parser()
 {
 	MyBitMap::initConst();

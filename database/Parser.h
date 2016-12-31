@@ -22,7 +22,7 @@ public:
 	void processDelete(hsql::DeleteStatement *stmt);
 	void processUpdate(hsql::UpdateStatement* stmt);
 	void processSelect(hsql::SelectStatement* stmt);
-
+	static vector<vector<string>> parseResults;
 private:
 	QL_Manager* qlm;
 	FileManager *fm;
@@ -30,6 +30,7 @@ private:
 	RM_Manager *rmm;
 	IX_Manager *ixm;
 	SM_Manager *smm;
+	
 	void packConditions(const char * relName, std::vector<hsql::Expr*>* whereClause, std::vector<Condition> & conditions);
 	void getFiles(string path, vector<string>& files);
 	std::string ReplaceAll(std::string & str, const std::string & from, const std::string & to);

@@ -1,4 +1,5 @@
 #include "QL_Manager.h"
+#include "Parser.h"
 #include <regex>
 #include <algorithm>
 #include <set>
@@ -18,6 +19,10 @@ QL_Manager::~QL_Manager()
 	rmm = nullptr;
 }
 
+void QL_Manager::setResults(string message)
+{
+	Parser::parseResults = vector<vector<string>>{ vector<string>{message} };
+}
 
 RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 {
@@ -25,12 +30,14 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 	{
 		//auto e = new vector<int>;
 		std::cout << "relation is null\n";
+		setResults("relation is null");
 		return QL_NULL_ERROR;
 	}
 
 	if (!smm->IsTableExists(relName))
 	{
 		std::cout << "Table doesn't exist\n";
+		setResults("Table doesn't exist");
 		return QL_TABLE_NOT_EXIST_ERROR;
 	}
 
@@ -51,6 +58,7 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 	if ((rc = smm->GetTableAttrInfo(smm->getWork_Database().c_str(), relName, attrCount, attrInfo, primaryIndex)))
 	{
 		std::cout << "Error to get Table Attr Info\n";
+		setResults("Error to get Table Attr Info");
 		return rc;
 	}
 
@@ -67,12 +75,14 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 			if (attrInfo[i].attrType == DDATE && values[i].type == VARCHAR)
 				continue;
 			continue;
+			setResults("Type Error");
 			std::cout << "Type Error\n";
 			return ERROR;
 		}
 		if (attrInfo[i].notnull && (values[i].type == AttrType::NUL))
 		{
 			std::cout << attrInfo[i].attrName << " shouldn't be null" << endl;
+			setResults(attrInfo[i].attrName + string(" shouldn't be null"));
 			return ERROR;
 		}
 	}
@@ -80,6 +90,7 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 	if (!(attrCount == nValues))
 	{
 		std::cout << "arguments not enough\n";
+		setResults("arguments not enough");
 		return QL_INCORRECT_ATTR_COUNT;
 	}
 
@@ -112,6 +123,7 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 		if ((rc = scan.OpenScan(ixIndexHandle[primaryIndex], CompOp::EQ_OP, values[primaryIndex].data)) == OK)
 		{
 			std::cout << "Duplicate Primary Key\n";
+			setResults("Duplicate Primary Key");
 			return ERROR;
 		}
 		scan.CloseScan();
@@ -200,6 +212,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 	if (smm->getWork_Database().size() <= 0)
 	{
 		std::cout << "Database is not open\n";
+		setResults("Database is not open");
 		return QL_DATABASE_NOT_OPEN;
 	}
 
@@ -212,11 +225,13 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 		if (relations[i].size() <=0)
 		{
 			std::cout << "table is NULL\n";
+			setResults("table is null");
 			return QL_NULL_ERROR;
 		}
 		if (!smm->IsTableExists(relations[i]))
 		{
 			std::cout << "table not exist" << endl;
+			setResults("table not exist");
 			return QL_TABLE_NOT_EXIST_ERROR;
 		}
 	}
@@ -230,6 +245,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 		if ((rc = smm->GetTableAttrInfo(smm->getWork_Database().c_str(), relations[i].c_str(), attrCount[i], attrInfo[i])))
 		{
 			std::cout << "Error to get Table Attr Info\n";
+			setResults("Error to get Attr Info");
 			return rc;
 		}
 	}
@@ -278,6 +294,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 		if (!found)
 		{
 			std::cout << "AtrrName Error\n";
+			setResults("AttrName Error");
 			return QL_INCORRECT_ATTR_NAME;
 		}
 	}
@@ -1156,6 +1173,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			if (condition.bRhsIsAttr && condition.op != CompOp::EQ_OP)
 			{
 				cout << "Don't support such Operation\n";
+				setResults("Don't support such Operation");
 				return ERROR;
 			}
 		}
@@ -1321,32 +1339,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			}
 		}
 	}
-	//for (auto rv : outputs)
-	//{
-	//	for (auto rec : rv)
-	//	{
-	//		cout << setw(25) << std::left << rec;
-	//	}
-	//	cout << endl;
-	//}
-	// clear workspace
-	//int fuck = false;
-	//int fuckP = -1;
-	//string fuckV;
-	//if (outputs.size() > 20)
-	//{
-	//	for (int i = 2; i < outputs.size(); i++)
-	//	{
-	//		if (outputs[i][0] < outputs[i - 1][0])
-	//		{
-	//			fuck = true;
-	//			fuckP = i;
-	//			fuckV = outputs[i][0];
-	//			//break;
-	//		}
-	//	}
-	//}
-	//cout << fuckP << " "<<fuckV << endl;
+	Parser::parseResults = outputs;
 	for (auto rv : outputs)
 	{
 		for (auto rec : rv)

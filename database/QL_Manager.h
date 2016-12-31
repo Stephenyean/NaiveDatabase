@@ -100,4 +100,5 @@ private:
 	int findCorAttr(int attrCount, const AttrInfo * attributes, const char * attrName);
 	RC findCorAttr(int& indexRelation, int& indexAttr, int* attrCount, AttrInfo ** attributes,  Condition & condition, vector<string> relations, bool right);
 	std::vector<RM_Record> recordsBuffer;
+	void setResults(string message);
 };
