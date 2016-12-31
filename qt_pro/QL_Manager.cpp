@@ -1,5 +1,4 @@
 #include "QL_Manager.h"
-#include "Parser.h"
 #include <regex>
 #include <algorithm>
 #include <set>
@@ -19,10 +18,6 @@ QL_Manager::~QL_Manager()
 	rmm = nullptr;
 }
 
-void QL_Manager::setResults(string message)
-{
-	Parser::parseResults = vector<vector<string>>{ vector<string>{message} };
-}
 
 RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 {
@@ -30,14 +25,12 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 	{
 		//auto e = new vector<int>;
 		std::cout << "relation is null\n";
-		setResults("relation is null");
 		return QL_NULL_ERROR;
 	}
 
 	if (!smm->IsTableExists(relName))
 	{
 		std::cout << "Table doesn't exist\n";
-		setResults("Table doesn't exist");
 		return QL_TABLE_NOT_EXIST_ERROR;
 	}
 
@@ -58,7 +51,6 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 	if ((rc = smm->GetTableAttrInfo(smm->getWork_Database().c_str(), relName, attrCount, attrInfo, primaryIndex)))
 	{
 		std::cout << "Error to get Table Attr Info\n";
-		setResults("Error to get Table Attr Info");
 		return rc;
 	}
 
@@ -70,19 +62,12 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 				continue;
 			if (attrInfo[i].attrType == VARCHAR && values[i].type == STRING)
 				continue;
-			if (attrInfo[i].attrType == VARCHAR && values[i].type == DDATE)
-				continue;
-			if (attrInfo[i].attrType == DDATE && values[i].type == VARCHAR)
-				continue;
-			continue;
-			setResults("Type Error");
 			std::cout << "Type Error\n";
 			return ERROR;
 		}
 		if (attrInfo[i].notnull && (values[i].type == AttrType::NUL))
 		{
 			std::cout << attrInfo[i].attrName << " shouldn't be null" << endl;
-			setResults(attrInfo[i].attrName + string(" shouldn't be null"));
 			return ERROR;
 		}
 	}
@@ -90,7 +75,6 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 	if (!(attrCount == nValues))
 	{
 		std::cout << "arguments not enough\n";
-		setResults("arguments not enough");
 		return QL_INCORRECT_ATTR_COUNT;
 	}
 
@@ -123,7 +107,6 @@ RC QL_Manager::Insert(const char  *relName, int nValues, vector<Value> values)
 		if ((rc = scan.OpenScan(ixIndexHandle[primaryIndex], CompOp::EQ_OP, values[primaryIndex].data)) == OK)
 		{
 			std::cout << "Duplicate Primary Key\n";
-			setResults("Duplicate Primary Key");
 			return ERROR;
 		}
 		scan.CloseScan();
@@ -212,26 +195,20 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 	if (smm->getWork_Database().size() <= 0)
 	{
 		std::cout << "Database is not open\n";
-		setResults("Database is not open");
 		return QL_DATABASE_NOT_OPEN;
 	}
 
-	//static int mmm = 1;
-	//cout << endl << endl << mmm<<endl;
-	//mmm++;
 	// judge if tables exist
 	for (int i = 0; i < nRelations; i++)
 	{
 		if (relations[i].size() <=0)
 		{
 			std::cout << "table is NULL\n";
-			setResults("table is null");
 			return QL_NULL_ERROR;
 		}
 		if (!smm->IsTableExists(relations[i]))
 		{
 			std::cout << "table not exist" << endl;
-			setResults("table not exist");
 			return QL_TABLE_NOT_EXIST_ERROR;
 		}
 	}
@@ -245,7 +222,6 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 		if ((rc = smm->GetTableAttrInfo(smm->getWork_Database().c_str(), relations[i].c_str(), attrCount[i], attrInfo[i])))
 		{
 			std::cout << "Error to get Table Attr Info\n";
-			setResults("Error to get Attr Info");
 			return rc;
 		}
 	}
@@ -294,7 +270,6 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 		if (!found)
 		{
 			std::cout << "AtrrName Error\n";
-			setResults("AttrName Error");
 			return QL_INCORRECT_ATTR_NAME;
 		}
 	}
@@ -333,7 +308,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 	{
 		for (int i = 0; i < nConditions; i++)
 		{
-			if (conditions[i].op == EQ_OP && conditions[i].bRhsIsAttr!=1)
+			if (conditions[i].op == EQ_OP && conditions[i].bRhsIsAttr == 0)
 			{
 				iCondition = i;
 				foundCondition = true;
@@ -501,10 +476,10 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			if (conditions[iCondition].rhsValue.type == STRING || conditions[iCondition].rhsValue.type == DDATE || conditions[iCondition].rhsValue.type == VARCHAR)
 				copyLength = strlen((char*)conditions[iCondition].rhsValue.data) + 1;
 			memcpy((void*)data, (void*)conditions[iCondition].rhsValue.data, copyLength);
-			//CompOp testOp = conditions[iCondition].op;
-			//if (conditions[iCondition].rhsValue.type == STRING)
-			//	testOp = NO_OP;
-			if (rc = scan1.OpenScan(ixIndexHandle, conditions[iCondition].op, data))
+			CompOp testOp = conditions[iCondition].op;
+			if (conditions[iCondition].rhsValue.type == STRING)
+				testOp = NO_OP;
+			if (rc = scan1.OpenScan(ixIndexHandle, testOp, data))
 			{
 				//std::cout << "Error to Open scan\n" << endl;
 				return rc;
@@ -1137,21 +1112,10 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 						}
 						int offset1 = getOffset(indexRelate, indexAttr, attrInfo);
 						int offset2 = getOffset(indexRelate2, indexAttr2, attrInfo);
-						if (realRelate1 == indexRelate)
+						if (!isRecordSatisfied((void*)(rec1.pData + attrCount[indexRelate] + offset1), conditions[i].op, (void*)(rec2.pData + attrCount[indexRelate2] + offset2), attrInfo[indexRelate][indexAttr].attrType))
 						{
-							if (!isRecordSatisfied((void*)(rec1.pData + attrCount[indexRelate] + offset1), conditions[i].op, (void*)(rec2.pData + attrCount[indexRelate2] + offset2), attrInfo[indexRelate][indexAttr].attrType))
-							{
-								satisfied = false;
-								break;
-							}
-						}
-						else
-						{
-							if (!isRecordSatisfied((void*)(rec2.pData + attrCount[indexRelate] + offset1), conditions[i].op, (void*)(rec1.pData + attrCount[indexRelate2] + offset2), attrInfo[indexRelate][indexAttr].attrType))
-							{
-								satisfied = false;
-								break;
-							}
+							satisfied = false;
+							break;
 						}
 					}
 					vector<string> result;
@@ -1173,7 +1137,6 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			if (condition.bRhsIsAttr && condition.op != CompOp::EQ_OP)
 			{
 				cout << "Don't support such Operation\n";
-				setResults("Don't support such Operation");
 				return ERROR;
 			}
 		}
@@ -1339,7 +1302,6 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 			}
 		}
 	}
-	Parser::parseResults = outputs;
 	for (auto rv : outputs)
 	{
 		for (auto rec : rv)
@@ -1348,7 +1310,7 @@ RC QL_Manager::Select(	int           nSelAttrs,        // # attrs in Select clau
 		}
 		cout << endl;
 	}
-	//assert(fuck == false);
+	// clear workspace
 	delete[]rmFileHandle;
 	rmFileHandle = nullptr;
 	ixm->CloseIndex(ixIndexHandle);
@@ -1382,7 +1344,7 @@ RC QL_Manager::print(RM_Record& record, int* attrCount, int nRelate, vector<RelA
 				result.push_back(std::to_string(*(int*)(record.pData + attrCount[nRelate] + attrOffset)));
 
 			}
-			else if (attrInfo[nRelate][i].attrType == AttrType::STRING || attrInfo[nRelate][i].attrType == AttrType::DDATE)
+			else if (attrInfo[nRelate][i].attrType == AttrType::STRING)
 			{
 				//std::cout << (record.pData + attrCount[nRelate] + attrOffset);
 				result.push_back(std::string(record.pData + attrCount[nRelate] + attrOffset));
@@ -1526,7 +1488,11 @@ RC QL_Manager::Update(const char * relName, const std::vector<RelAttr>& updAttr,
 	{
 		if (bIsValue[i])
 		{
-			if (rhsValue[i].type == DINT && !attributes[i].attrType == rhsValue[i].type)
+			if (rhsValue[i].type == DINT && !attributes[i].attrType == DINT)
+			{
+				attrError = true;
+			}
+			else if ((rhsValue[i].type == STRING || rhsValue[i].type == DDATE || rhsValue[i].type == VARCHAR) && !(attributes[i].attrType == STRING))
 			{
 				attrError = true;
 			}

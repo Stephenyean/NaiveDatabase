@@ -583,7 +583,17 @@ select_clause:
 			$$->whereClause = $5;
 			$$->groupBy = $6;
 		}
-	|	
+	|
+		SELECT opt_distinct opt_select_method expr from_clause opt_where opt_group {
+			$$ = new SelectStatement($3);
+			$$->selectDistinct = $2;
+			$$->selectList = new std::vector<Expr*>();
+			$$->selectList->push_back($4);
+			$$->fromTable = $5;
+			$$->whereClause = $6;
+			$$->groupBy = $7;
+		}
+	|
 	SELECT opt_distinct expr_list ',' opt_select_method expr from_clause opt_where opt_group {
 			$$ = new SelectStatement($5);
 			$$->selectDistinct = $2;
